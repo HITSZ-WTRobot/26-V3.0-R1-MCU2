@@ -6,5 +6,8 @@ ioc_file = "26-V3.0-R1-MCU2.ioc"
 
 [dependencies]
 packages = [
+    "MotorDrivers::Controller",
+    "MotorDrivers::Core",
+    "MotorDrivers::DJI",
     "utils",
 ]
