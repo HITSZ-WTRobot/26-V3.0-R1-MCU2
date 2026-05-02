@@ -1,0 +1,10 @@
+format_version = 1
+
+[project]
+name = "26-V3.0-R1-MCU2"
+ioc_file = "26-V3.0-R1-MCU2.ioc"
+
+[dependencies]
+packages = [
+    "utils",
+]
