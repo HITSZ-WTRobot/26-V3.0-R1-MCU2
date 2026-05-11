@@ -9,6 +9,19 @@
 #include <cstdint>
 #include <string.h>
 
+#define KEY1 0x00000001U
+#define KEY2 0x00000002U
+#define KEY3 0x00000004U
+#define KEY4 0x00000008U
+#define KEY5 0x00000010U
+#define KEY6 0x00000020U
+#define KEY7 0x00000040U
+#define KEY8 0x00000080U
+#define KEY9 0x00000100U
+#define KEY10 0x00000200U
+#define KEY11 0x00000400U
+#define KEY12 0x00000800U
+
 namespace Controller
 {
 
@@ -140,15 +153,15 @@ static void Button_Init()
 
 static void HandleArmControl(uint16_t falling_buttons)
 {
-    if ((falling_buttons & 0x0008U) != 0U)
+    if ((falling_buttons & KEY8) != 0U)
     {
         Arm_AutoCatchStart(static_cast<ArmAutoCatchLevel>(DIP_switch));
     }
-    if ((falling_buttons & 0x0020U) != 0U)
+    if ((falling_buttons & KEY4) != 0U)
     {
         Arm_Rotate_Out(true);
     }
-    if ((falling_buttons & 0x0040U) != 0U)
+    if ((falling_buttons & KEY3) != 0U)
     {
         Arm_Rotate_Back(true);
     }
@@ -158,11 +171,11 @@ static void HandleClampControl(uint32_t button_state)
 {
     if (reset_status == success)
     {
-        if (button_state & 0x00000010U)
+        if (button_state & KEY5)
         {
             clamp_vel_out = -ProjectClampConfig::OutManualSpeed;
         }
-        else if (button_state & 0x00000020U)
+        else if (button_state & KEY6)
         {
             clamp_vel_out = ProjectClampConfig::OutManualSpeed;
         }
@@ -172,12 +185,12 @@ static void HandleClampControl(uint32_t button_state)
         }
     }
 
-    if (button_state & 0x00000001U)
+    if (button_state & KEY1)
     {
         // low-byte button bit 0
         clamp_vel_yaw = ProjectClampConfig::YawManualSpeed;
     }
-    else if (button_state & 0x00000100U)
+    else if (button_state & KEY9)
     {
         // high-byte button bit 0
         clamp_vel_yaw = -ProjectClampConfig::YawManualSpeed;
@@ -187,14 +200,13 @@ static void HandleClampControl(uint32_t button_state)
         clamp_vel_yaw = 0.0f;
     }
 
-    if (button_state & 0x00000002U)
+    if (button_state & KEY2)
     {
         // low-byte button bit 1
         clamp_vel_roll = -ProjectClampConfig::RollManualSpeed;
     }
-    else if (button_state & 0x00000200U)
+    else if (button_state & KEY10)
     {
-        // high-byte button bit 1
         clamp_vel_roll = ProjectClampConfig::RollManualSpeed;
     }
     else
