@@ -8,6 +8,9 @@ namespace Device
 
 namespace motor
 {
+inline motors::DJIMotor* rotate_motor;
+inline motors::DJIMotor* raiseandlower_motor;
+inline motors::DJIMotor* catch_motor;
 inline motors::DJIMotor* motor_clamp_out;
 inline motors::DJIMotor* motor_clamp_roll;
 inline motors::DJIMotor* motor_clamp_catch;

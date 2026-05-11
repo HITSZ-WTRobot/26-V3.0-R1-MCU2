@@ -2,6 +2,7 @@
 
 #include "device.hpp"
 #include "main.h"
+#include "cmsis_os2.h"
 #include "gpio.h"
 #include "motor_pos_controller.hpp"
 #include "motor_vel_controller.hpp"
@@ -125,6 +126,7 @@ static void Pump_Init(Pump_t *hpump, const Pump_Config_t *config) {
 
 using Motor_PosCtrl_t = controllers::MotorPosController;
 using Motor_VelCtrl_t = controllers::MotorVelController;
+using namespace Device::motor;
 
 bool Is_raiseandlower_motor_init = false;
 bool Is_rotate_motor_out = false;
@@ -176,7 +178,7 @@ Motor_VelCtrl_t *vel_catch_motor = nullptr;
 
 
 Pump_Config_t pump_config = {
-    .htim = &htim3,
+    .htim = nullptr,
     .channel = TIM_CHANNEL_3,
     .valve_port = PUMP_VALVE_GPIO_Port,
     .pump_port = PUMP_RELAY_GPIO_Port,

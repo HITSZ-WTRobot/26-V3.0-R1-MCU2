@@ -12,8 +12,8 @@
 namespace Controller
 {
 
-using ProjectControllerConfig = AppConfig::Controller;
-using ProjectClampConfig      = AppConfig::Clamp;
+namespace ProjectControllerConfig = AppConfig::Controller;
+namespace ProjectClampConfig      = AppConfig::Clamp;
 
 static uint8_t readIndex  = 0;
 static uint8_t writeIndex = 0;

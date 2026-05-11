@@ -4,7 +4,7 @@
 #include <cmath>
 
 using namespace Device::motor;
-using ProjectClampConfig = AppConfig::Clamp;
+namespace ProjectClampConfig = AppConfig::Clamp;
 
 Motor_PosCtrl_t* clamp_out_pos   = nullptr;
 Motor_PosCtrl_t* clamp_yaw_pos   = nullptr;

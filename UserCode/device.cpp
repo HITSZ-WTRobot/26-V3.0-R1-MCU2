@@ -4,11 +4,6 @@
 
 namespace Device
 {
-// 机械臂电机
-motors::DJIMotor* rotate_motor        = nullptr; // 旋转电机
-motors::DJIMotor* raiseandlower_motor = nullptr; // 升降电机
-motors::DJIMotor* catch_motor         = nullptr; // 伸出电机
-
 constexpr motors::DJIMotor::Config rotate_motor_config = {
     .hcan      = &hcan1,
     .type      = motors::DJIMotor::Type::M3508_C620,
@@ -83,9 +78,9 @@ void can_init()
 void motor_init()
 {
     using motors::DJIMotor;
-    rotate_motor             = new DJIMotor(rotate_motor_config);
-    catch_motor              = new DJIMotor(catch_motor_config);
-    raiseandlower_motor      = new DJIMotor(raiseandlower_motor_config);
+    motor::rotate_motor        = new DJIMotor(rotate_motor_config);
+    motor::catch_motor         = new DJIMotor(catch_motor_config);
+    motor::raiseandlower_motor = new DJIMotor(raiseandlower_motor_config);
     motor::motor_clamp_out   = new DJIMotor(motor_clamp_out_config);
     motor::motor_clamp_roll  = new DJIMotor(motor_clamp_roll_config);
     motor::motor_clamp_yaw   = new DJIMotor(motor_clamp_yaw_config);
@@ -101,9 +96,10 @@ void app_device_init()
 bool app_device_IsAllConnected()
 {
     bool all_connected = true;
-    all_connected &= (rotate_motor != nullptr) && rotate_motor->isConnected();
-    all_connected &= (catch_motor != nullptr) && catch_motor->isConnected();
-    all_connected &= (raiseandlower_motor != nullptr) && raiseandlower_motor->isConnected();
+    all_connected &= (motor::rotate_motor != nullptr) && motor::rotate_motor->isConnected();
+    all_connected &= (motor::catch_motor != nullptr) && motor::catch_motor->isConnected();
+    all_connected &= (motor::raiseandlower_motor != nullptr) &&
+                     motor::raiseandlower_motor->isConnected();
     all_connected &= (motor::motor_clamp_out != nullptr) && motor::motor_clamp_out->isConnected();
     all_connected &= (motor::motor_clamp_roll != nullptr) && motor::motor_clamp_roll->isConnected();
     all_connected &= (motor::motor_clamp_yaw != nullptr) && motor::motor_clamp_yaw->isConnected();
