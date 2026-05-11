@@ -34,3 +34,4 @@ void APP_Arm_BeforeUpdate();
 void APP_Arm_Update_1kHz();
 void APP_Arm_Update_100Hz();
 void Arm_Rotate_Out(bool enable);
+void Arm_Rotate_Back(bool enable);

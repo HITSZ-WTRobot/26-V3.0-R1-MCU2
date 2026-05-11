@@ -328,6 +328,23 @@ void Arm_Rotate_Out(bool enable) {
   Is_rotate_motor_out = true;
 }
 
+void Arm_Rotate_Back(bool enable) {
+  if (!enable) {
+    return;
+  }
+  if (pos_rotate_motor == nullptr || vel_rotate_motor == nullptr) {
+    return;
+  }
+  if (!Is_rotate_motor_out) {
+    return;
+  }
+
+  vel_rotate_motor->disable();
+  pos_rotate_motor->enable();
+  pos_rotate_motor->setRef(ARM_RESET_ANGLE);
+  Is_rotate_motor_out = false;
+}
+
 // 切换吸泵：吸取 <-> 释放
 void Arm_Pump_Toggle(void) {
   static uint8_t pump_state = 0;
@@ -490,7 +507,7 @@ static void Arm_softTIM(void *argument) {
 
   if ((osEventFlagsWait(flags_id, 0x00000040U, osFlagsWaitAny, 0) &
        0xFF000040U) == 0x00000040U) {
-    Arm_Pump_Toggle();
+    Arm_Rotate_Back(true);
   }
 }
 
