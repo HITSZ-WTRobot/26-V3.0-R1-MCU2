@@ -1,18 +1,19 @@
 #pragma once
 
 #include "cmsis_os2.h"
+#include "config.hpp"
 #include "device.hpp"
 #include "flags.hpp"
 #include "motor_pos_controller.hpp"
 #include "motor_vel_controller.hpp"
 
-#define MAX_VEL_ROLL 100.0f
-#define MAX_VEL_YAW  10.0f
+inline constexpr float MAX_VEL_ROLL = AppConfig::Clamp::MaxVelRoll;
+inline constexpr float MAX_VEL_YAW  = AppConfig::Clamp::MaxVelYaw;
 
 enum Control_Mode
 {
-    POS_Control = 0, // 位置控制
-    VEL_Control = 1  // 速度控制
+    POS_Control = 0,
+    VEL_Control = 1,
 };
 
 enum PROCESS
