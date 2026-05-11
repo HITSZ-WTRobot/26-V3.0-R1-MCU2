@@ -138,6 +138,71 @@ static void Button_Init()
     DIP_switch = 0;
 }
 
+static void HandleArmControl(uint16_t falling_buttons)
+{
+    if ((falling_buttons & 0x0008U) != 0U)
+    {
+        Arm_AutoCatchStart(static_cast<ArmAutoCatchLevel>(DIP_switch));
+    }
+    if ((falling_buttons & 0x0020U) != 0U)
+    {
+        Arm_Rotate_Out(true);
+    }
+    if ((falling_buttons & 0x0040U) != 0U)
+    {
+        Arm_Rotate_Back(true);
+    }
+}
+
+static void HandleClampControl(uint32_t button_state)
+{
+    if (reset_status == success)
+    {
+        if (button_state & 0x00000010U)
+        {
+            clamp_vel_out = -ProjectClampConfig::OutManualSpeed;
+        }
+        else if (button_state & 0x00000020U)
+        {
+            clamp_vel_out = ProjectClampConfig::OutManualSpeed;
+        }
+        else
+        {
+            clamp_vel_out = 0.0f;
+        }
+    }
+
+    if (button_state & 0x00000001U)
+    {
+        // low-byte button bit 0
+        clamp_vel_yaw = ProjectClampConfig::YawManualSpeed;
+    }
+    else if (button_state & 0x00000100U)
+    {
+        // high-byte button bit 0
+        clamp_vel_yaw = -ProjectClampConfig::YawManualSpeed;
+    }
+    else
+    {
+        clamp_vel_yaw = 0.0f;
+    }
+
+    if (button_state & 0x00000002U)
+    {
+        // low-byte button bit 1
+        clamp_vel_roll = -ProjectClampConfig::RollManualSpeed;
+    }
+    else if (button_state & 0x00000200U)
+    {
+        // high-byte button bit 1
+        clamp_vel_roll = ProjectClampConfig::RollManualSpeed;
+    }
+    else
+    {
+        clamp_vel_roll = 0.0f;
+    }
+}
+
 // Controller packet format (14 bytes total):
 // [0]     Header1 = 0xAA
 // [1]     Header2 = 0xBB
@@ -194,66 +259,9 @@ extern "C" void controller_task(void* argument)
                         (static_cast<uint32_t>(DIP_switch) << 16);
                 osEventFlagsSet(flags_id, event_flags);
 
-                if ((falling_buttons & 0x0008U) != 0U)
-                {
-                    Arm_AutoCatchStart(static_cast<ArmAutoCatchLevel>(DIP_switch));
-                }
-                if ((falling_buttons & 0x0020U) != 0U)
-                {
-                    Arm_Rotate_Out(true);
-                }
-                if ((falling_buttons & 0x0040U) != 0U)
-                {
-                    Arm_Rotate_Back(true);
-                }
-
+                HandleArmControl(falling_buttons);
                 prev_buttons = curr_buttons;
-
-                if (reset_status == success)
-                {
-                    if (button & 0x00000010U)
-                    {
-                        clamp_vel_out = -ProjectClampConfig::OutManualSpeed;
-                    }
-                    else if (button & 0x00000020U)
-                    {
-                        clamp_vel_out = ProjectClampConfig::OutManualSpeed;
-                    }
-                    else
-                    {
-                        clamp_vel_out = 0.0f;
-                    }
-                }
-
-                if (button & 0x00000001U)
-                {
-                    // low-byte button bit 0
-                    clamp_vel_yaw = ProjectClampConfig::YawManualSpeed;
-                }
-                else if (button & 0x00000100U)
-                {
-                    // high-byte button bit 0
-                    clamp_vel_yaw = -ProjectClampConfig::YawManualSpeed;
-                }
-                else
-                {
-                    clamp_vel_yaw = 0.0f;
-                }
-
-                if (button & 0x00000002U)
-                {
-                    // low-byte button bit 1
-                    clamp_vel_roll = -ProjectClampConfig::RollManualSpeed;
-                }
-                else if (button & 0x00000200U)
-                {
-                    // high-byte button bit 1
-                    clamp_vel_roll = ProjectClampConfig::RollManualSpeed;
-                }
-                else
-                {
-                    clamp_vel_roll = 0.0f;
-                }
+                HandleClampControl(button);
 
                 decode_success_count++;
                 controller_watchdog.feed(500);
