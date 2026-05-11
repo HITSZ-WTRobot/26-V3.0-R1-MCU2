@@ -1,7 +1,6 @@
 #include "arm.hpp"
 
 #include "device.hpp"
-#include "eventflags.hpp"
 #include "main.h"
 #include "gpio.h"
 #include "motor_pos_controller.hpp"
@@ -276,8 +275,6 @@ void Arm_AutoCatchAbortKeepPump() {
 
 // ================================ 遥控器接口函数和参数实现 ============================================
 
-ArmAutoCatchLevel level = ARM_AUTO_CATCH_HIGH; // 临时占位，应改为从拨码开关读取
-
 //下面的三个函数都是通过按键触发的
 
 // 启动自动抓取状态机并清零手动速度指令,通过这个函数可以从外部触发自动抓取流程，参数指定抓取的高度档位。
@@ -493,22 +490,6 @@ static void Arm_softTIM(void *argument) {
     return;
   }
 
-  if ((osEventFlagsWait(flags_id, 0x00000008U, osFlagsWaitAny, 0) &
-       0xFF000008U) == 0x00000008U) {
-    // 读取拨码开关设置的高度档位，触发自动抓取
-    // 这里需要从外部接口获取拨码开关的值，例如 Get_DipSwitch_Level() 或类似的函数
-    Arm_AutoCatchStart(level);
-  }
-
-  if ((osEventFlagsWait(flags_id, 0x00000020U, osFlagsWaitAny, 0) &
-       0xFF000020U) == 0x00000020U) {
-    Arm_Rotate_Out(true);
-  }
-
-  if ((osEventFlagsWait(flags_id, 0x00000040U, osFlagsWaitAny, 0) &
-       0xFF000040U) == 0x00000040U) {
-    Arm_Rotate_Back(true);
-  }
 }
 
 static void Arm_raiseandlower_reset(float vel) {

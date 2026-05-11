@@ -26,6 +26,9 @@ enum mode
     AUTO_AIM = 1,
 };
 
+extern uint32_t button;
+extern uint8_t  DIP_switch;
+
 void ControllerReceive_OnRxCplt();
 void app_controller_receive_init(void);
 void softTIM_controller();
