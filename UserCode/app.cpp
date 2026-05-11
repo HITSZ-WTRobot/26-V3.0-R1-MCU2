@@ -15,6 +15,7 @@
 #include "controller.hpp"
 #include "flags.hpp"
 #include "clamp.hpp"
+#include "arm.hpp"
 
 osThreadId_t         softTIMHandle;
 const osThreadAttr_t softTIM_attributes = {
@@ -31,6 +32,7 @@ extern "C" void TIM_Callback_1kHz(TIM_HandleTypeDef* htim)
     Controller::update_1kHz();
     Device::update_1kHz();
     APP_Clamp_Update_1kHz();
+    APP_Arm_Update_1kHz();
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
@@ -50,7 +52,7 @@ extern "C" void Init(void* argument)
     Controller::app_controller_receive_init();
     Device::app_device_init();
     APP_Clamp_BeforeUpdate();
-    Clamp_Control_Init();
+    APP_Arm_BeforeUpdate();
 
     // 启动定时器
     HAL_TIM_RegisterCallback(&htim6, HAL_TIM_PERIOD_ELAPSED_CB_ID, TIM_Callback_1kHz);
