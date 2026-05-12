@@ -156,7 +156,7 @@ static void HandleArmControl(uint16_t falling_buttons)
     {
         // Auto_height is defined by DIP switch bits 5 and 6.
         // 00 -> 0, 01 -> 1, 10 -> 2.
-        const uint8_t auto_height_bits = (DIP_switch >> 5U) & 0x03U;
+        const uint8_t auto_height_bits = (dip_switch >> 5U) & 0x03U;
         ArmAutoCatchLevel auto_height_level = ARM_AUTO_CATCH_LOW;
 
         if (auto_height_bits == 1U)

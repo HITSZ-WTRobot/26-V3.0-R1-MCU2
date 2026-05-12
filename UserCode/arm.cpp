@@ -221,9 +221,8 @@ static void Arm_raiseandlower_reset(float vel) {
         }
         osDelay(1);
     }
+    Device::motor::raiseandlower_motor->resetAngle();
     vel_raiseandlower_motor->setRef(0.0f);
-    osDelay(500);
-    vel_raiseandlower_motor->disable();
 }
 
 // 将所有输出使能/位置设定重置到初始状态。
@@ -478,6 +477,10 @@ static void Arm_softTIM(void *argument) {
       pos_catch_motor->enable();
       pos_catch_motor->setRef(ARM_CATCH_PUSH_ANGLE);
       if (AutoStepTimeout(ARM_AUTO_WAIT_PUSH_MS, now_ms)) {
+        vel_catch_motor->disable();
+        pos_catch_motor->enable();
+        
+        pos_catch_motor->setRef(ARM_AUTO_RETRACT_PUSH_ANGLE);
         switch (g_auto_catch_target_height) {
         case ARM_AUTO_CATCH_LOW:
         case ARM_AUTO_CATCH_MID:
@@ -491,9 +494,6 @@ static void Arm_softTIM(void *argument) {
       break;
 
     case AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT: //先旋转再去释放高度的逻辑
-      vel_catch_motor->disable();
-      pos_catch_motor->enable();
-      pos_catch_motor->setRef(ARM_AUTO_RETRACT_PUSH_ANGLE);
       vel_rotate_motor->disable();
       pos_rotate_motor->enable();
       pos_rotate_motor->setRef(ARM_ROTATE_RELEASE_ANGLE);
@@ -508,10 +508,6 @@ static void Arm_softTIM(void *argument) {
       break;
 
     case AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE: // 先去释放高度再旋转的逻辑
-      vel_catch_motor->disable();
-      pos_catch_motor->enable();
-      pos_catch_motor->setRef(ARM_AUTO_RETRACT_PUSH_ANGLE);
-      vel_raiseandlower_motor->disable();
       pos_raiseandlower_motor->enable();
       pos_raiseandlower_motor->setRef(ARM_RELEASE_HEIGHT);
       if (AutoStepTimeout(ARM_AUTO_WAIT_RELEASE_HEIGHT_MS, now_ms)) {
