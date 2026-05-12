@@ -10,6 +10,7 @@
 #include "stm32f4xx_hal_gpio.h"
 #include "tim.h"
 
+#include <cmath>
 #include <cstdint>
 
 // ================================= 气泵控制相关定义与函数 ==========================================

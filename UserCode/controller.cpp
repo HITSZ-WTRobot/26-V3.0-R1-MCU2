@@ -31,26 +31,26 @@ namespace
 {
 namespace clamp_config = AppConfig::Clamp;
 
-inline constexpr uint8_t raw_data_size      = 14U;
+inline constexpr uint8_t raw_data_size      = 13U;
 inline constexpr uint8_t ring_buffer_size   = 64U;
 inline constexpr uint8_t frame_header_1     = 0xAAU;
 inline constexpr uint8_t frame_header_2     = 0xBBU;
-inline constexpr uint8_t dip_switch_index   = 10U;
-inline constexpr uint8_t button_high_index  = 11U;
-inline constexpr uint8_t button_low_index   = 12U;
-inline constexpr uint8_t crc_index          = 13U;
+inline constexpr uint8_t dip_switch_index   = 9U;
+inline constexpr uint8_t button_high_index  = 10U;
+inline constexpr uint8_t button_low_index   = 11U;
+inline constexpr uint8_t crc_index          = 12U;
 inline constexpr uint8_t payload_offset     = 2U;
-inline constexpr uint8_t payload_size       = raw_data_size - 3U;
+inline constexpr uint8_t payload_size       = raw_data_size - 3U;//参与crc校验的实际字节数
 inline constexpr uint32_t watchdog_feed_ttl = 500U;
 
-uint8_t  rx_dma_buffer[raw_data_size];
+uint8_t  rx_dma_buffer[raw_data_size];  
 uint8_t  rx_ring_buffer[ring_buffer_size];
 uint8_t  read_index              = 0U;
 uint8_t  write_index             = 0U;
 uint32_t decode_count            = 0U;
 uint32_t decode_error_count      = 0U;
 uint32_t decode_success_count    = 0U;
-bool     is_controller_connected = true;
+bool     is_controller_connected = true; 
 uint32_t button_state            = 0U;
 uint8_t  dip_switch              = 0U;
 
@@ -211,18 +211,6 @@ static void HandleClampControl(uint32_t btn_state)
     }
 }
 
-// Controller packet format (14 bytes total):
-// [0]     Header1 = 0xAA
-// [1]     Header2 = 0xBB
-// [2]     LX joystick or other analog channel
-// [3]     LY joystick or other analog channel
-// [4]     RX joystick or other analog channel
-// [5]     RY joystick or other analog channel
-// [6..9]  Reserved / extra payload bytes
-// [10]    DIP switch state
-// [11]    Buttons high byte
-// [12]    Buttons low byte
-// [13]    CRC8 over bytes [2..12]
 
 } // namespace
 
