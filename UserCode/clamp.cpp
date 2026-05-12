@@ -11,29 +11,6 @@
 #include <cmath>
 
 using namespace Device::motor;
-<<<<<<< HEAD
-=======
-namespace ProjectClampConfig = AppConfig::Clamp;
-
-Motor_PosCtrl_t* clamp_out_pos   = nullptr;
-Motor_PosCtrl_t* clamp_yaw_pos   = nullptr;
-Motor_PosCtrl_t* clamp_roll_pos  = nullptr;
-Motor_PosCtrl_t* clamp_catch_pos = nullptr;
-
-Motor_VelCtrl_t* clamp_out_vel   = nullptr;
-Motor_VelCtrl_t* clamp_yaw_vel   = nullptr;
-Motor_VelCtrl_t* clamp_roll_vel  = nullptr;
-Motor_VelCtrl_t* clamp_catch_vel = nullptr;
-
-enum Control_Mode clamp_out_mode;
-enum Control_Mode clamp_roll_mode;
-
-bool control_reset = false;
-
-float target_out  = 0.0f;
-float target_yaw  = 0.0f;
-float target_roll = 0.0f;
->>>>>>> e445f767fe4d7b0cd01c76ed43a56443be2e7090
 
 float clamp_vel_out  = 0.0f;
 float clamp_vel_yaw  = 0.0f;

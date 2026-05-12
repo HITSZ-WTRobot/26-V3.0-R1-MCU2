@@ -9,16 +9,13 @@
 #include "cmsis_os2.h"
 
 #include "clamp.hpp"
-<<<<<<< HEAD
 #include "controller.hpp"
 #include "device.hpp"
 #include "flags.hpp"
 #include "main.h"
 #include "tim.h"
 #include "watchdog.hpp"
-=======
 #include "arm.hpp"
->>>>>>> e445f767fe4d7b0cd01c76ed43a56443be2e7090
 
 //////////////////////// Callback Handlers ///////////////////////
 
@@ -52,10 +49,7 @@ extern "C" void Init(void* argument)
     Controller::app_controller_receive_init();
     Device::app_device_init();
     APP_Clamp_BeforeUpdate();
-<<<<<<< HEAD
-=======
     APP_Arm_BeforeUpdate();
->>>>>>> e445f767fe4d7b0cd01c76ed43a56443be2e7090
 
     // Start timer
     HAL_TIM_RegisterCallback(&htim6, HAL_TIM_PERIOD_ELAPSED_CB_ID, TIM_Callback_1kHz);

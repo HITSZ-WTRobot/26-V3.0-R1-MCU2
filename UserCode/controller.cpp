@@ -27,14 +27,8 @@
 namespace Controller
 {
 
-<<<<<<< HEAD
 namespace
 {
-=======
-namespace ProjectControllerConfig = AppConfig::Controller;
-namespace ProjectClampConfig      = AppConfig::Clamp;
->>>>>>> e445f767fe4d7b0cd01c76ed43a56443be2e7090
-
 namespace clamp_config = AppConfig::Clamp;
 
 inline constexpr uint8_t raw_data_size      = 14U;
@@ -156,15 +150,11 @@ void button_init()
     dip_switch   = 0U;
 }
 
-<<<<<<< HEAD
-} // namespace
-
-=======
 static void HandleArmControl(uint16_t falling_buttons)
 {
     if ((falling_buttons & KEY8) != 0U)
     {
-        Arm_AutoCatchStart(static_cast<ArmAutoCatchLevel>(DIP_switch));
+        Arm_AutoCatchStart(static_cast<ArmAutoCatchLevel>(dip_switch));
     }
     if ((falling_buttons & KEY4) != 0U)
     {
@@ -176,17 +166,17 @@ static void HandleArmControl(uint16_t falling_buttons)
     }
 }
 
-static void HandleClampControl(uint32_t button_state)
+static void HandleClampControl(uint32_t btn_state)
 {
-    if (reset_status == success)
+    if (reset_status == ResetProcess::Success)
     {
-        if (button_state & KEY5)
+        if (btn_state & KEY5)
         {
-            clamp_vel_out = -ProjectClampConfig::OutManualSpeed;
+            clamp_vel_out = -clamp_config::OutManualSpeed;
         }
-        else if (button_state & KEY6)
+        else if (btn_state & KEY6)
         {
-            clamp_vel_out = ProjectClampConfig::OutManualSpeed;
+            clamp_vel_out = clamp_config::OutManualSpeed;
         }
         else
         {
@@ -194,29 +184,26 @@ static void HandleClampControl(uint32_t button_state)
         }
     }
 
-    if (button_state & KEY1)
+    if (btn_state & KEY1)
     {
-        // low-byte button bit 0
-        clamp_vel_yaw = ProjectClampConfig::YawManualSpeed;
+        clamp_vel_yaw = clamp_config::YawManualSpeed;
     }
-    else if (button_state & KEY9)
+    else if (btn_state & KEY9)
     {
-        // high-byte button bit 0
-        clamp_vel_yaw = -ProjectClampConfig::YawManualSpeed;
+        clamp_vel_yaw = -clamp_config::YawManualSpeed;
     }
     else
     {
         clamp_vel_yaw = 0.0f;
     }
 
-    if (button_state & KEY2)
+    if (btn_state & KEY2)
     {
-        // low-byte button bit 1
-        clamp_vel_roll = -ProjectClampConfig::RollManualSpeed;
+        clamp_vel_roll = -clamp_config::RollManualSpeed;
     }
-    else if (button_state & KEY10)
+    else if (btn_state & KEY10)
     {
-        clamp_vel_roll = ProjectClampConfig::RollManualSpeed;
+        clamp_vel_roll = clamp_config::RollManualSpeed;
     }
     else
     {
@@ -231,18 +218,14 @@ static void HandleClampControl(uint32_t button_state)
 // [3]     LY joystick or other analog channel
 // [4]     RX joystick or other analog channel
 // [5]     RY joystick or other analog channel
-// [6..9]  Reserved / extra payload bytes (not decoded here)
+// [6..9]  Reserved / extra payload bytes
 // [10]    DIP switch state
 // [11]    Buttons high byte
 // [12]    Buttons low byte
 // [13]    CRC8 over bytes [2..12]
-//
-// Parsed values are stored in global state:
-// - DIP_switch: switch bank from byte 10
-// - button: full 32-bit button mask combining high/low bytes
-// - falling_buttons: buttons that were released since last packet
-// The handler currently uses button bits to drive clamp control.
->>>>>>> e445f767fe4d7b0cd01c76ed43a56443be2e7090
+
+} // namespace
+
 extern "C" void controller_task(void* argument)
 {
     (void)argument;
@@ -274,69 +257,15 @@ extern "C" void controller_task(void* argument)
                 const uint16_t falling_buttons =
                         (uint16_t)(previous_buttons & ~current_buttons);
 
-<<<<<<< HEAD
                 button_state = static_cast<uint32_t>(current_buttons) |
                                (static_cast<uint32_t>(dip_switch) << 16);
-=======
-                // button: low 16 bits are physical buttons, high 8 bits are DIP switches.
-                button = static_cast<uint32_t>(curr_buttons) |
-                         (static_cast<uint32_t>(DIP_switch) << 16);
-                // event_flags: falling edge of buttons + DIP switch state for RTOS watchers.
->>>>>>> e445f767fe4d7b0cd01c76ed43a56443be2e7090
                 const uint32_t event_flags =
                         static_cast<uint32_t>(falling_buttons) |
                         (static_cast<uint32_t>(dip_switch) << 16);
                 osEventFlagsSet(flags_id, event_flags);
-<<<<<<< HEAD
                 previous_buttons = current_buttons;
-
-                if (reset_status == ResetProcess::Success)
-                {
-                    if (button_state & 0x00000010U)
-                    {
-                        clamp_vel_out = -clamp_config::OutManualSpeed;
-                    }
-                    else if (button_state & 0x00000020U)
-                    {
-                        clamp_vel_out = clamp_config::OutManualSpeed;
-                    }
-                    else
-                    {
-                        clamp_vel_out = 0.0f;
-                    }
-
-                    if (button_state & 0x00000001U)
-                    {
-                        clamp_vel_yaw = clamp_config::YawManualSpeed;
-                    }
-                    else if (button_state & 0x00000100U)
-                    {
-                        clamp_vel_yaw = -clamp_config::YawManualSpeed;
-                    }
-                    else
-                    {
-                        clamp_vel_yaw = 0.0f;
-                    }
-
-                    if (button_state & 0x00000002U)
-                    {
-                        clamp_vel_roll = -clamp_config::RollManualSpeed;
-                    }
-                    else if (button_state & 0x00000200U)
-                    {
-                        clamp_vel_roll = clamp_config::RollManualSpeed;
-                    }
-                    else
-                    {
-                        clamp_vel_roll = 0.0f;
-                    }
-                }
-=======
-
                 HandleArmControl(falling_buttons);
-                prev_buttons = curr_buttons;
-                HandleClampControl(button);
->>>>>>> e445f767fe4d7b0cd01c76ed43a56443be2e7090
+                HandleClampControl(button_state);
 
                 decode_success_count++;
                 controller_watchdog.feed(watchdog_feed_ttl);

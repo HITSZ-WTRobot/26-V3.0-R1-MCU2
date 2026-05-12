@@ -3,27 +3,6 @@
 namespace Controller
 {
 
-<<<<<<< HEAD
-=======
-static constexpr float max_joystick = 2000.0f; // 遥控器摇杆数据最大值
-
-struct cmd_vel
-{
-    float vel_x;
-    float vel_y;
-    float vel_wz;
-};
-
-enum mode
-{
-    MANUAL   = 0,
-    AUTO_AIM = 1,
-};
-
-extern uint32_t button;
-extern uint8_t  DIP_switch;
-
->>>>>>> e445f767fe4d7b0cd01c76ed43a56443be2e7090
 void ControllerReceive_OnRxCplt();
 void app_controller_receive_init(void);
 void update_1kHz();
