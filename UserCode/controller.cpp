@@ -152,9 +152,23 @@ void button_init()
 
 static void HandleArmControl(uint16_t falling_buttons)
 {
-    if ((falling_buttons & KEY8) != 0U)
+    if ((falling_buttons & KEY11) != 0U)
     {
-        Arm_AutoCatchStart(static_cast<ArmAutoCatchLevel>(dip_switch));
+        // Auto_height is defined by DIP switch bits 5 and 6.
+        // 00 -> 0, 01 -> 1, 10 -> 2.
+        const uint8_t auto_height_bits = (DIP_switch >> 5U) & 0x03U;
+        ArmAutoCatchLevel auto_height_level = ARM_AUTO_CATCH_LOW;
+
+        if (auto_height_bits == 1U)
+        {
+            auto_height_level = ARM_AUTO_CATCH_MID;
+        }
+        else if (auto_height_bits == 2U)
+        {
+            auto_height_level = ARM_AUTO_CATCH_HIGH;
+        }
+
+        Arm_AutoCatchStart(auto_height_level);
     }
     if ((falling_buttons & KEY4) != 0U)
     {

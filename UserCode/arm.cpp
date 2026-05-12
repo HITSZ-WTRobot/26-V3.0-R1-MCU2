@@ -132,6 +132,7 @@ using namespace Device::motor;
 bool Is_raiseandlower_motor_init = false;
 bool Is_rotate_motor_out = false;
 
+
 float arm_vel_out = 0;
 float arm_vel_out_last = 0;
 float arm_vel_rotate = 0;
@@ -191,6 +192,69 @@ Pump_Config_t pump_config = {
 static Pump_t pump;
 
 
+static void Arm_raiseandlower_reset(float vel) {
+  vel_raiseandlower_motor->enable();
+  vel_raiseandlower_motor->setRef(vel);
+  Is_raiseandlower_motor_init = true;
+
+  while (std::fabs(vel_raiseandlower_motor->getPID().getOutput()) < 13000.0f) {
+    osDelay(1);
+  }
+    // 检测输出稳定性（需保持500ms以上）
+    uint32_t stable_time_start = HAL_GetTick();
+    const uint32_t STABLE_THRESHOLD = 500;
+    
+    while (Is_raiseandlower_motor_init)
+    {
+        if (std::fabs(vel_raiseandlower_motor->getPID().getOutput()) >= 10000.0f)
+        {
+            // 输出保持在目标以上
+            if (HAL_GetTick() - stable_time_start >= STABLE_THRESHOLD)
+            {
+                Is_raiseandlower_motor_init = false;
+            }
+        }
+        else
+        {
+            // 输出下降到目标以下，重置计时器
+            stable_time_start = HAL_GetTick();
+        }
+        osDelay(1);
+    }
+    vel_raiseandlower_motor->setRef(0.0f);
+    osDelay(500);
+    vel_raiseandlower_motor->disable();
+}
+
+// 将所有输出使能/位置设定重置到初始状态。
+static void Arm_output_reset()
+{
+  vel_catch_motor->disable();
+  pos_catch_motor->disable();
+
+  vel_rotate_motor->disable();
+  pos_rotate_motor->disable();
+
+  vel_raiseandlower_motor->disable();
+  pos_raiseandlower_motor->disable();
+
+  arm_vel_out = 0;
+  arm_vel_rotate = 0;
+  arm_vel_height = 0;
+
+  arm_vel_out_last = 0;
+  arm_vel_rotate_last = 0;
+  arm_vel_height_last = 0;
+
+  arm_pos_out = 0;
+  arm_pos_rotate = 0;
+  arm_pos_height = 0;
+
+  Is_rotate_motor_out = false;
+
+}
+
+
 // 电机控制中断节拍：更新所有位置/速度控制器。
 void Arm_TIM_Callback(void) {
   pos_raiseandlower_motor->update();
@@ -204,6 +268,15 @@ void Arm_TIM_Callback(void) {
 // 将外部速度指令转换为控制器使能/失能动作。
 static void Arm_Contrl_Task(void *argument) {
   (void)argument;
+  if (!Is_raiseandlower_motor_init) {
+    Arm_raiseandlower_reset(30.0f);
+    Is_raiseandlower_motor_init = true;
+  }
+  if (raiseandlower_motor != nullptr)
+  {
+    raiseandlower_motor->resetAngle();
+  }
+  vel_raiseandlower_motor->getPID().reset();
   for (;;) {
     if (arm_vel_out_last != 0) {
       pos_catch_motor->disable();
@@ -495,65 +568,6 @@ static void Arm_softTIM(void *argument) {
 
 }
 
-static void Arm_raiseandlower_reset(float vel) {
-  vel_raiseandlower_motor->enable();
-  vel_raiseandlower_motor->setRef(vel);
-  Is_raiseandlower_motor_init = true;
-
-  while (std::fabs(vel_raiseandlower_motor->getPID().getOutput()) < 5000.0f) {
-    osDelay(5);
-  }
-    // 检测输出稳定性（需保持500ms以上）
-    uint32_t stable_time_start = HAL_GetTick();
-    const uint32_t STABLE_THRESHOLD = 500;
-    
-    while (Is_raiseandlower_motor_init)
-    {
-        if (std::fabs(vel_raiseandlower_motor->getPID().getOutput()) >= 1500.0f)
-        {
-            // 输出保持在目标以上
-            if (HAL_GetTick() - stable_time_start >= STABLE_THRESHOLD)
-            {
-                Is_raiseandlower_motor_init = false;
-            }
-        }
-        else
-        {
-            // 输出下降到目标以下，重置计时器
-            stable_time_start = HAL_GetTick();
-        }
-        osDelay(1);
-    }
-}
-
-// 将所有输出使能/位置设定重置到初始状态。
-static void Arm_output_reset()
-{
-  vel_catch_motor->disable();
-  pos_catch_motor->disable();
-
-  vel_rotate_motor->disable();
-  pos_rotate_motor->disable();
-
-  vel_raiseandlower_motor->disable();
-  pos_raiseandlower_motor->disable();
-
-  arm_vel_out = 0;
-  arm_vel_rotate = 0;
-  arm_vel_height = 0;
-
-  arm_vel_out_last = 0;
-  arm_vel_rotate_last = 0;
-  arm_vel_height_last = 0;
-
-  arm_pos_out = 0;
-  arm_pos_rotate = 0;
-  arm_pos_height = 0;
-
-  Is_rotate_motor_out = false;
-
-}
-
 // 初始化吸泵、控制器与 RTOS 钩子。
 void Arm_Init(void) {
   (void)ARM_CATCH_PUSH_ANGLE;
@@ -578,7 +592,7 @@ void Arm_Init(void) {
   arm_raiseandlower_vel_cfg.pid.Kp = 100.0f;
   arm_raiseandlower_vel_cfg.pid.Ki = 0.8f;
   arm_raiseandlower_vel_cfg.pid.Kd = 1.0f;
-  arm_raiseandlower_vel_cfg.pid.abs_output_max = 8000.0f;
+  arm_raiseandlower_vel_cfg.pid.abs_output_max = 14000.0f;
 
   controllers::MotorPosController::Config arm_catch_pos_cfg{};
   arm_catch_pos_cfg.velocity_pid.Kp = 500.0f;
@@ -595,7 +609,7 @@ void Arm_Init(void) {
   arm_rotate_pos_cfg.velocity_pid.Kp = 500.0f;
   arm_rotate_pos_cfg.velocity_pid.Ki = 5.0f;
   arm_rotate_pos_cfg.velocity_pid.Kd = 0.5f;
-  arm_rotate_pos_cfg.velocity_pid.abs_output_max = 16000.0f;
+  arm_rotate_pos_cfg.velocity_pid.abs_output_max = 12000.0f;
   arm_rotate_pos_cfg.position_pid.Kp = 1.6f;
   arm_rotate_pos_cfg.position_pid.Ki = 0.00f;
   arm_rotate_pos_cfg.position_pid.Kd = 0.6f;
@@ -606,7 +620,7 @@ void Arm_Init(void) {
   arm_raiseandlower_pos_cfg.velocity_pid.Kp = 500.0f;
   arm_raiseandlower_pos_cfg.velocity_pid.Ki = 5.0f;
   arm_raiseandlower_pos_cfg.velocity_pid.Kd = 0.5f;
-  arm_raiseandlower_pos_cfg.velocity_pid.abs_output_max = 16000.0f;
+  arm_raiseandlower_pos_cfg.velocity_pid.abs_output_max = 14000.0f;
   arm_raiseandlower_pos_cfg.position_pid.Kp = 1.6f;
   arm_raiseandlower_pos_cfg.position_pid.Ki = 0.0f;
   arm_raiseandlower_pos_cfg.position_pid.Kd = 0.6f;
@@ -623,10 +637,6 @@ void Arm_Init(void) {
   pos_raiseandlower_motor =
       new Motor_PosCtrl_t(raiseandlower_motor, arm_raiseandlower_pos_cfg);
 
-  Arm_output_reset();
-
-  Arm_raiseandlower_reset(3000.0f);
-  
   Arm_output_reset();
 
   ArmHandle = osThreadNew(Arm_Contrl_Task, NULL, &arm_attributes);
