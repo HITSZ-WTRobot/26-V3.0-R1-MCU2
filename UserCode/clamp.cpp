@@ -11,6 +11,29 @@
 #include <cmath>
 
 using namespace Device::motor;
+<<<<<<< HEAD
+=======
+namespace ProjectClampConfig = AppConfig::Clamp;
+
+Motor_PosCtrl_t* clamp_out_pos   = nullptr;
+Motor_PosCtrl_t* clamp_yaw_pos   = nullptr;
+Motor_PosCtrl_t* clamp_roll_pos  = nullptr;
+Motor_PosCtrl_t* clamp_catch_pos = nullptr;
+
+Motor_VelCtrl_t* clamp_out_vel   = nullptr;
+Motor_VelCtrl_t* clamp_yaw_vel   = nullptr;
+Motor_VelCtrl_t* clamp_roll_vel  = nullptr;
+Motor_VelCtrl_t* clamp_catch_vel = nullptr;
+
+enum Control_Mode clamp_out_mode;
+enum Control_Mode clamp_roll_mode;
+
+bool control_reset = false;
+
+float target_out  = 0.0f;
+float target_yaw  = 0.0f;
+float target_roll = 0.0f;
+>>>>>>> e445f767fe4d7b0cd01c76ed43a56443be2e7090
 
 float clamp_vel_out  = 0.0f;
 float clamp_vel_yaw  = 0.0f;
@@ -70,6 +93,10 @@ inline constexpr uint32_t control_task_delay_ms = 100U;
 inline constexpr float    reset_seek_velocity   = 100.0f;
 inline constexpr float    reset_lock_threshold  = 1500.0f;
 inline constexpr uint32_t reset_hold_ms         = 500U;
+inline constexpr float    yaw_reset_seek_velocity   = 50.0f;
+inline constexpr float    yaw_reset_lock_threshold  = 1500.0f;
+inline constexpr uint32_t yaw_reset_hold_ms         = 500U;
+inline constexpr float    yaw_reset_hold_position   = 0.0f;
 inline constexpr float    catch_closed_angle    = 150.0f;
 inline constexpr float    zero_velocity_epsilon = 1e-4f;
 
@@ -191,37 +218,71 @@ void clamp_timer_callback()
     clamp_catch_pos->update();
 }
 
-void reset_clamp_out_axis()
+void wait_axis_stall(
+        MotorVelController* velocity_controller, const float lock_threshold, const uint32_t hold_ms)
 {
-    clamp_out_mode = ControlMode::Vel;
-    clamp_vel_out  = reset_seek_velocity;
-    reset_status   = ResetProcess::Start;
-
-    while (std::fabs(clamp_out_vel_controller->getPID().getOutput()) < reset_lock_threshold)
+    reset_status = ResetProcess::Processing;
+    while (std::fabs(velocity_controller->getPID().getOutput()) < lock_threshold)
     {
         osDelay(1);
     }
 
-    while (reset_status != ResetProcess::Success)
+    for (;;)
     {
-        reset_status = ResetProcess::Processing;
-        while (std::fabs(clamp_out_vel_controller->getPID().getOutput()) < reset_lock_threshold)
+        while (std::fabs(velocity_controller->getPID().getOutput()) < lock_threshold)
         {
             osDelay(1);
         }
 
         const uint32_t time_start = HAL_GetTick();
-        while (std::fabs(clamp_out_vel_controller->getPID().getOutput()) >= reset_lock_threshold)
+        while (std::fabs(velocity_controller->getPID().getOutput()) >= lock_threshold)
         {
             reset_status = ResetProcess::Wait;
-            if (HAL_GetTick() - time_start >= reset_hold_ms)
+            if (HAL_GetTick() - time_start >= hold_ms)
             {
-                reset_status = ResetProcess::Success;
-                break;
+                return;
             }
             osDelay(1);
         }
     }
+}
+
+void reset_clamp_out_axis()
+{
+    clamp_out_mode = ControlMode::Vel;
+    clamp_vel_out  = reset_seek_velocity;
+    wait_axis_stall(clamp_out_vel_controller, reset_lock_threshold, reset_hold_ms);
+}
+
+void finish_clamp_out_reset()
+{
+    clamp_vel_out = 0.0f;
+    if (motor_clamp_out != nullptr)
+    {
+        motor_clamp_out->resetAngle();
+    }
+    clamp_out_vel_controller->getPID().reset();
+    target_out     = 0.0f;
+    clamp_out_mode = ControlMode::Pos;
+}
+
+void reset_clamp_yaw_axis()
+{
+    clamp_yaw_mode = ControlMode::Vel;
+    clamp_vel_yaw  = yaw_reset_seek_velocity;
+    wait_axis_stall(clamp_yaw_vel_controller, yaw_reset_lock_threshold, yaw_reset_hold_ms);
+}
+
+void finish_clamp_yaw_reset()
+{
+    clamp_vel_yaw = 0.0f;
+    if (motor_clamp_yaw != nullptr)
+    {
+        motor_clamp_yaw->resetAngle();
+    }
+    clamp_yaw_vel_controller->getPID().reset();
+    target_yaw     = yaw_reset_hold_position;
+    clamp_yaw_mode = ControlMode::Pos;
 }
 
 } // namespace
@@ -271,13 +332,16 @@ void Clamp_Control(void* argument)
     {
         if (control_reset)
         {
+            reset_status   = ResetProcess::Start;
+            clamp_vel_roll = 0.0f;
             reset_clamp_out_axis();
-            clamp_vel_out = 0.0f;
-            if (motor_clamp_out != nullptr)
-            {
-                motor_clamp_out->resetAngle();
-            }
-            clamp_out_vel_controller->getPID().reset();
+            finish_clamp_out_reset();
+
+            reset_status = ResetProcess::Processing;
+            reset_clamp_yaw_axis();
+            finish_clamp_yaw_reset();
+
+            reset_status  = ResetProcess::Success;
             control_reset = false;
         }
         osDelay(control_task_delay_ms);
