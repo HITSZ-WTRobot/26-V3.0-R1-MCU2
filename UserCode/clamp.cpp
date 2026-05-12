@@ -1,164 +1,266 @@
 #include "clamp.hpp"
+
+#include "cmsis_os2.h"
+#include "config.hpp"
+#include "device.hpp"
+#include "flags.hpp"
 #include "main.h"
+#include "motor_pos_controller.hpp"
+#include "motor_vel_controller.hpp"
 
 #include <cmath>
 
 using namespace Device::motor;
-using ProjectClampConfig = AppConfig::Clamp;
-
-Motor_PosCtrl_t* clamp_out_pos   = nullptr;
-Motor_PosCtrl_t* clamp_yaw_pos   = nullptr;
-Motor_PosCtrl_t* clamp_roll_pos  = nullptr;
-Motor_PosCtrl_t* clamp_catch_pos = nullptr;
-
-Motor_VelCtrl_t* clamp_out_vel   = nullptr;
-Motor_VelCtrl_t* clamp_yaw_vel   = nullptr;
-Motor_VelCtrl_t* clamp_roll_vel  = nullptr;
-Motor_VelCtrl_t* clamp_catch_vel = nullptr;
-
-enum Control_Mode clamp_out_mode;
-enum Control_Mode clamp_roll_mode;
-
-bool control_reset = false;
-
-float target_out  = 0.0f;
-float target_yaw  = 0.0f;
-float target_roll = 0.0f;
 
 float clamp_vel_out  = 0.0f;
 float clamp_vel_yaw  = 0.0f;
 float clamp_vel_roll = 0.0f;
+ResetProcess reset_status = ResetProcess::Unknown;
 
-float catch_angle = 0.0f;
+namespace
+{
 
-osTimerId_t drawer_timHandle;
+namespace clamp_config = AppConfig::Clamp;
 
-enum PROCESS reset_status = unknown;
+using MotorPosController = controllers::MotorPosController;
+using MotorVelController = controllers::MotorVelController;
 
-osThreadId_t         clampHandle      = nullptr;
+inline constexpr MotorVelController::Config clamp_out_vel_controller_config{
+    .pid = { .Kp = 500.0f, .Ki = 0.1f, .Kd = 0.0f, .abs_output_max = 8000.0f },
+};
+
+inline constexpr MotorVelController::Config clamp_yaw_vel_controller_config{
+    .pid = { .Kp = 45.0f, .Ki = 0.15f, .Kd = 0.0f, .abs_output_max = 8000.0f },
+};
+
+inline constexpr MotorVelController::Config clamp_roll_vel_controller_config{
+    .pid = { .Kp = 500.0f, .Ki = 0.1f, .Kd = 0.0f, .abs_output_max = 8000.0f },
+};
+
+inline constexpr MotorVelController::Config clamp_catch_vel_controller_config{
+    .pid = { .Kp = 500.0f, .Ki = 0.1f, .Kd = 0.0f, .abs_output_max = 4500.0f },
+};
+
+inline constexpr MotorPosController::Config clamp_out_pos_controller_config{
+    .position_pid       = { .Kp = 2.0f, .Ki = 0.0f, .Kd = 0.2f, .abs_output_max = 400.0f },
+    .velocity_pid       = { .Kp = 500.0f, .Ki = 0.10f, .Kd = 0.0f, .abs_output_max = 8000.0f },
+    .pos_vel_freq_ratio = 10U,
+};
+
+inline constexpr MotorPosController::Config clamp_roll_pos_controller_config{
+    .position_pid       = { .Kp = 2.0f, .Ki = 0.0f, .Kd = 0.2f, .abs_output_max = 400.0f },
+    .velocity_pid       = { .Kp = 500.0f, .Ki = 0.10f, .Kd = 0.0f, .abs_output_max = 8000.0f },
+    .pos_vel_freq_ratio = 10U,
+};
+
+inline constexpr MotorPosController::Config clamp_yaw_pos_controller_config{
+    .position_pid       = { .Kp = 80.0f, .Ki = 1.0f, .Kd = 0.0f, .abs_output_max = 2000.0f },
+    .velocity_pid       = { .Kp = 12.0f, .Ki = 0.20f, .Kd = 5.0f, .abs_output_max = 8000.0f },
+    .pos_vel_freq_ratio = 10U,
+};
+
+inline constexpr MotorPosController::Config clamp_catch_pos_controller_config{
+    .position_pid       = { .Kp = 2.0f, .Ki = 0.0f, .Kd = 0.2f, .abs_output_max = 400.0f },
+    .velocity_pid       = { .Kp = 500.0f, .Ki = 0.10f, .Kd = 0.0f, .abs_output_max = 4500.0f },
+    .pos_vel_freq_ratio = 10U,
+};
+
+inline constexpr uint32_t soft_timer_period_ms  = 20U;
+inline constexpr uint32_t control_task_delay_ms = 100U;
+inline constexpr float    reset_seek_velocity   = 100.0f;
+inline constexpr float    reset_lock_threshold  = 1500.0f;
+inline constexpr uint32_t reset_hold_ms         = 500U;
+inline constexpr float    catch_closed_angle    = 150.0f;
+inline constexpr float    zero_velocity_epsilon = 1e-4f;
+
+MotorPosController* clamp_out_pos   = nullptr;
+MotorPosController* clamp_yaw_pos   = nullptr;
+MotorPosController* clamp_roll_pos  = nullptr;
+MotorPosController* clamp_catch_pos = nullptr;
+
+MotorVelController* clamp_out_vel_controller   = nullptr;
+MotorVelController* clamp_yaw_vel_controller   = nullptr;
+MotorVelController* clamp_roll_vel_controller  = nullptr;
+MotorVelController* clamp_catch_vel_controller = nullptr;
+
+ControlMode clamp_out_mode  = ControlMode::Vel;
+ControlMode clamp_roll_mode = ControlMode::Vel;
+ControlMode clamp_yaw_mode  = ControlMode::Vel;
+
+bool  control_reset = false;
+float target_out    = 0.0f;
+float target_yaw    = 0.0f;
+float target_roll   = 0.0f;
+float catch_angle   = 0.0f;
+
 const osThreadAttr_t clamp_attributes = {
     .name       = "clamp",
     .stack_size = 128 * 8,
     .priority   = (osPriority_t)osPriorityNormal1,
 };
 
-void Clamp_Init(void)
+bool is_zero_velocity(const float velocity)
 {
-    clamp_out_vel   = new Motor_VelCtrl_t(motor_clamp_out, ProjectClampConfig::OutVelControllerCfg);
-    clamp_yaw_vel   = new Motor_VelCtrl_t(motor_clamp_yaw, ProjectClampConfig::YawVelControllerCfg);
-    clamp_roll_vel  = new Motor_VelCtrl_t(motor_clamp_roll, ProjectClampConfig::RollVelControllerCfg);
-    clamp_catch_vel = new Motor_VelCtrl_t(
-            motor_clamp_catch, ProjectClampConfig::CatchVelControllerCfg);
-
-    clamp_out_pos =
-            new Motor_PosCtrl_t(motor_clamp_out, ProjectClampConfig::OutPosControllerCfg);
-    clamp_roll_pos =
-            new Motor_PosCtrl_t(motor_clamp_roll, ProjectClampConfig::RollPosControllerCfg);
-    clamp_yaw_pos =
-            new Motor_PosCtrl_t(motor_clamp_yaw, ProjectClampConfig::YawPosControllerCfg);
-    clamp_catch_pos =
-            new Motor_PosCtrl_t(motor_clamp_catch, ProjectClampConfig::CatchPosControllerCfg);
-
-    clamp_out_pos->disable();
-    clamp_roll_pos->disable();
-    clamp_yaw_pos->disable();
-    clamp_out_vel->disable();
-    clamp_roll_vel->disable();
-    clamp_roll_pos->disable();
-    clamp_yaw_vel->enable();
-    clamp_catch_pos->enable();
-    clamp_out_mode  = VEL_Control;
-    clamp_roll_mode = VEL_Control;
+    return std::fabs(velocity) <= zero_velocity_epsilon;
 }
 
-void Clamp_Control_Init(void)
+void hold_axis_position(
+        MotorPosController* position_controller,
+        MotorVelController* velocity_controller,
+        ControlMode&        axis_mode,
+        float               commanded_velocity,
+        float&              target_position)
 {
-    clampHandle      = osThreadNew(Clamp_Control, NULL, &clamp_attributes);
-    drawer_timHandle = osTimerNew(Clamp_softTIM, osTimerPeriodic, NULL, NULL);
-    osTimerStart(drawer_timHandle, ProjectClampConfig::SoftTimerPeriodMs);
+    if (is_zero_velocity(commanded_velocity))
+    {
+        if (axis_mode != ControlMode::Pos)
+        {
+            target_position = position_controller->getMotor()->getAngle();
+            axis_mode = ControlMode::Pos;
+        }
+    }
+    else
+    {
+        axis_mode = ControlMode::Vel;
+        position_controller->disable();
+        velocity_controller->enable();
+    }
 }
 
-static void clamp_TIM_callback(void)
+void clamp_timer_callback()
 {
+    hold_axis_position(
+            clamp_out_pos, clamp_out_vel_controller, clamp_out_mode, clamp_vel_out, target_out);
+    hold_axis_position(
+            clamp_roll_pos, clamp_roll_vel_controller, clamp_roll_mode, clamp_vel_roll, target_roll);
+    hold_axis_position(
+            clamp_yaw_pos, clamp_yaw_vel_controller, clamp_yaw_mode, clamp_vel_yaw, target_yaw);
+
     switch (clamp_out_mode)
     {
-    case POS_Control:
-        clamp_out_vel->disable();
+    case ControlMode::Pos:
+        clamp_out_vel_controller->disable();
         clamp_out_pos->enable();
         clamp_out_pos->setRef(target_out);
         clamp_out_pos->update();
         break;
 
-    case VEL_Control:
+    case ControlMode::Vel:
         clamp_out_pos->disable();
-        clamp_out_vel->enable();
-        clamp_out_vel->setRef(clamp_vel_out);
-        clamp_out_vel->update();
-        break;
-
-    default:
+        clamp_out_vel_controller->enable();
+        clamp_out_vel_controller->setRef(clamp_vel_out);
+        clamp_out_vel_controller->update();
         break;
     }
 
     switch (clamp_roll_mode)
     {
-    case POS_Control:
-        clamp_roll_vel->disable();
+    case ControlMode::Pos:
+        clamp_roll_vel_controller->disable();
         clamp_roll_pos->enable();
         clamp_roll_pos->setRef(target_roll);
         clamp_roll_pos->update();
         break;
 
-    case VEL_Control:
+    case ControlMode::Vel:
         clamp_roll_pos->disable();
-        clamp_roll_vel->enable();
-        clamp_roll_vel->setRef(clamp_vel_roll);
-        clamp_roll_vel->update();
+        clamp_roll_vel_controller->enable();
+        clamp_roll_vel_controller->setRef(clamp_vel_roll);
+        clamp_roll_vel_controller->update();
+        break;
+    }
+
+    switch (clamp_yaw_mode)
+    {
+    case ControlMode::Pos:
+        clamp_yaw_vel_controller->disable();
+        clamp_yaw_pos->enable();
+        clamp_yaw_pos->setRef(target_yaw);
+        clamp_yaw_pos->update();
         break;
 
-    default:
+    case ControlMode::Vel:
+        clamp_yaw_pos->disable();
+        clamp_yaw_vel_controller->enable();
+        clamp_yaw_vel_controller->setRef(clamp_vel_yaw);
+        clamp_yaw_vel_controller->update();
         break;
     }
 
     clamp_catch_pos->setRef(catch_angle);
     clamp_catch_pos->update();
-    clamp_yaw_vel->setRef(clamp_vel_yaw);
-    clamp_yaw_vel->update();
 }
 
-static void reset()
+void reset_clamp_out_axis()
 {
-    clamp_out_mode = VEL_Control;
-    clamp_vel_out  = ProjectClampConfig::ResetSeekVelocity;
-    reset_status   = start;
+    clamp_out_mode = ControlMode::Vel;
+    clamp_vel_out  = reset_seek_velocity;
+    reset_status   = ResetProcess::Start;
 
-    while (std::fabs(clamp_out_vel->getPID().getOutput()) < ProjectClampConfig::ResetLockThreshold)
+    while (std::fabs(clamp_out_vel_controller->getPID().getOutput()) < reset_lock_threshold)
     {
         osDelay(1);
     }
 
-    while (reset_status != success)
+    while (reset_status != ResetProcess::Success)
     {
-        reset_status = processing;
-        while (std::fabs(clamp_out_vel->getPID().getOutput()) <
-               ProjectClampConfig::ResetLockThreshold)
+        reset_status = ResetProcess::Processing;
+        while (std::fabs(clamp_out_vel_controller->getPID().getOutput()) < reset_lock_threshold)
         {
             osDelay(1);
         }
 
         const uint32_t time_start = HAL_GetTick();
-        while (std::fabs(clamp_out_vel->getPID().getOutput()) >=
-               ProjectClampConfig::ResetLockThreshold)
+        while (std::fabs(clamp_out_vel_controller->getPID().getOutput()) >= reset_lock_threshold)
         {
-            reset_status = wait;
-            if (HAL_GetTick() - time_start >= ProjectClampConfig::ResetHoldMs)
+            reset_status = ResetProcess::Wait;
+            if (HAL_GetTick() - time_start >= reset_hold_ms)
             {
-                reset_status = success;
+                reset_status = ResetProcess::Success;
                 break;
             }
             osDelay(1);
         }
     }
+}
+
+} // namespace
+
+void Clamp_Init(void)
+{
+    clamp_out_vel_controller =
+            new MotorVelController(motor_clamp_out, clamp_out_vel_controller_config);
+    clamp_yaw_vel_controller =
+            new MotorVelController(motor_clamp_yaw, clamp_yaw_vel_controller_config);
+    clamp_roll_vel_controller =
+            new MotorVelController(motor_clamp_roll, clamp_roll_vel_controller_config);
+    clamp_catch_vel_controller =
+            new MotorVelController(motor_clamp_catch, clamp_catch_vel_controller_config);
+
+    clamp_out_pos = new MotorPosController(motor_clamp_out, clamp_out_pos_controller_config);
+    clamp_roll_pos = new MotorPosController(motor_clamp_roll, clamp_roll_pos_controller_config);
+    clamp_yaw_pos = new MotorPosController(motor_clamp_yaw, clamp_yaw_pos_controller_config);
+    clamp_catch_pos = new MotorPosController(motor_clamp_catch, clamp_catch_pos_controller_config);
+
+    clamp_out_pos->disable();
+    clamp_roll_pos->disable();
+    clamp_yaw_pos->disable();
+    clamp_out_vel_controller->disable();
+    clamp_roll_vel_controller->disable();
+    clamp_catch_vel_controller->disable();
+    clamp_yaw_vel_controller->enable();
+    clamp_catch_pos->enable();
+    clamp_out_mode  = ControlMode::Vel;
+    clamp_roll_mode = ControlMode::Vel;
+    clamp_yaw_mode  = ControlMode::Vel;
+}
+
+void Clamp_Control_Init(void)
+{
+    osThreadNew(Clamp_Control, nullptr, &clamp_attributes);
+    const osTimerId_t clamp_timer_handle =
+            osTimerNew(Clamp_softTIM, osTimerPeriodic, nullptr, nullptr);
+    osTimerStart(clamp_timer_handle, soft_timer_period_ms);
 }
 
 void Clamp_Control(void* argument)
@@ -169,22 +271,22 @@ void Clamp_Control(void* argument)
     {
         if (control_reset)
         {
-            reset();
+            reset_clamp_out_axis();
             clamp_vel_out = 0.0f;
             if (motor_clamp_out != nullptr)
             {
                 motor_clamp_out->resetAngle();
             }
-            clamp_out_vel->getPID().reset();
+            clamp_out_vel_controller->getPID().reset();
             control_reset = false;
         }
-        osDelay(ProjectClampConfig::ControlTaskDelayMs);
+        osDelay(control_task_delay_ms);
     }
 }
 
-void Clamp_softTIM(void* arguement)
+void Clamp_softTIM(void* argument)
 {
-    (void)arguement;
+    (void)argument;
 
     if ((osEventFlagsWait(flags_id, 0x00000080U, osFlagsWaitAny, 0) & 0xFF000080U) == 0x00000080U)
     {
@@ -194,7 +296,7 @@ void Clamp_softTIM(void* arguement)
     {
         if (catch_angle == 0.0f)
         {
-            catch_angle = ProjectClampConfig::CatchClosedAngle;
+            catch_angle = catch_closed_angle;
         }
         else
         {
@@ -211,7 +313,7 @@ void APP_Clamp_BeforeUpdate()
 
 void APP_Clamp_Update_1kHz()
 {
-    clamp_TIM_callback();
+    clamp_timer_callback();
 }
 
 void APP_Clamp_Update_100Hz() {}

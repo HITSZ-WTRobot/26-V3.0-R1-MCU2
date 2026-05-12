@@ -1,54 +1,30 @@
 #pragma once
 
-#include "cmsis_os2.h"
-#include "config.hpp"
-#include "device.hpp"
-#include "flags.hpp"
-#include "motor_pos_controller.hpp"
-#include "motor_vel_controller.hpp"
-
-inline constexpr float MAX_VEL_ROLL = AppConfig::Clamp::MaxVelRoll;
-inline constexpr float MAX_VEL_YAW  = AppConfig::Clamp::MaxVelYaw;
-
-enum Control_Mode
+enum class ControlMode
 {
-    POS_Control = 0,
-    VEL_Control = 1,
+    Pos = 0,
+    Vel = 1,
 };
 
-enum PROCESS
+enum class ResetProcess
 {
-    error = 0,
-    start,
-    wait,
-    success,
-    processing,
-    unknown,
+    Error = 0,
+    Start,
+    Wait,
+    Success,
+    Processing,
+    Unknown,
 };
-
-using Motor_PosCtrl_t = controllers::MotorPosController;
-using Motor_VelCtrl_t = controllers::MotorVelController;
-
-extern Motor_PosCtrl_t* clamp_out_pos;
-extern Motor_PosCtrl_t* clamp_yaw_pos;
-extern Motor_PosCtrl_t* clamp_roll_pos;
-extern Motor_PosCtrl_t* clamp_catch_pos;
-
-extern Motor_VelCtrl_t* clamp_out_vel;
-extern Motor_VelCtrl_t* clamp_yaw_vel;
-extern Motor_VelCtrl_t* clamp_roll_vel;
-extern Motor_VelCtrl_t* clamp_catch_vel;
 
 extern float        clamp_vel_out;
 extern float        clamp_vel_yaw;
 extern float        clamp_vel_roll;
-extern bool         control_reset;
-extern enum PROCESS reset_status;
+extern ResetProcess reset_status;
 
 void Clamp_Init(void);
 void Clamp_Control(void* argument);
 void Clamp_Control_Init(void);
-void Clamp_softTIM(void* arguement);
+void Clamp_softTIM(void* argument);
 
 void APP_Clamp_BeforeUpdate();
 void APP_Clamp_Update_1kHz();

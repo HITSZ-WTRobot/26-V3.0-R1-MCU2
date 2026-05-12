@@ -1,13 +1,14 @@
 #include "device.hpp"
+
 #include "can.h"
 #include "cmsis_os2.h"
 
 namespace Device
 {
-// 机械臂电机
-motors::DJIMotor* rotate_motor        = nullptr; // 旋转电机
-motors::DJIMotor* raiseandlower_motor = nullptr; // 升降电机
-motors::DJIMotor* catch_motor         = nullptr; // 伸出电机
+// Manipulator motors
+motors::DJIMotor* rotate_motor          = nullptr; // rotate motor
+motors::DJIMotor* raise_and_lower_motor = nullptr; // lift motor
+motors::DJIMotor* catch_motor           = nullptr; // extension motor
 
 constexpr motors::DJIMotor::Config rotate_motor_config = {
     .hcan      = &hcan1,
@@ -25,7 +26,7 @@ constexpr motors::DJIMotor::Config catch_motor_config = {
     .reverse   = false,
 };
 
-constexpr motors::DJIMotor::Config raiseandlower_motor_config = {
+constexpr motors::DJIMotor::Config raise_and_lower_motor_config = {
     .hcan      = &hcan1,
     .type      = motors::DJIMotor::Type::M3508_C620,
     .id1       = 3,
@@ -83,9 +84,10 @@ void can_init()
 void motor_init()
 {
     using motors::DJIMotor;
+
     rotate_motor             = new DJIMotor(rotate_motor_config);
     catch_motor              = new DJIMotor(catch_motor_config);
-    raiseandlower_motor      = new DJIMotor(raiseandlower_motor_config);
+    raise_and_lower_motor    = new DJIMotor(raise_and_lower_motor_config);
     motor::motor_clamp_out   = new DJIMotor(motor_clamp_out_config);
     motor::motor_clamp_roll  = new DJIMotor(motor_clamp_roll_config);
     motor::motor_clamp_yaw   = new DJIMotor(motor_clamp_yaw_config);
@@ -103,9 +105,11 @@ bool app_device_IsAllConnected()
     bool all_connected = true;
     all_connected &= (rotate_motor != nullptr) && rotate_motor->isConnected();
     all_connected &= (catch_motor != nullptr) && catch_motor->isConnected();
-    all_connected &= (raiseandlower_motor != nullptr) && raiseandlower_motor->isConnected();
+    all_connected &= (raise_and_lower_motor != nullptr) &&
+                     raise_and_lower_motor->isConnected();
     all_connected &= (motor::motor_clamp_out != nullptr) && motor::motor_clamp_out->isConnected();
-    all_connected &= (motor::motor_clamp_roll != nullptr) && motor::motor_clamp_roll->isConnected();
+    all_connected &= (motor::motor_clamp_roll != nullptr) &&
+                     motor::motor_clamp_roll->isConnected();
     all_connected &= (motor::motor_clamp_yaw != nullptr) && motor::motor_clamp_yaw->isConnected();
     all_connected &= (motor::motor_clamp_catch != nullptr) &&
                      motor::motor_clamp_catch->isConnected();
@@ -115,7 +119,9 @@ bool app_device_IsAllConnected()
 void app_device_WaitConnections()
 {
     while (!app_device_IsAllConnected())
+    {
         osDelay(1);
+    }
 }
 
 void update_1kHz()
