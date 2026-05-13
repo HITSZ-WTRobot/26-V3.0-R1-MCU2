@@ -111,14 +111,15 @@ static void Pump_Init(Pump_t *hpump, const Pump_Config_t *config) {
 #define ARM_AUTO_WAIT_ROTATE_MS 500U
 #define ARM_AUTO_WAIT_PUMP_ON_MS 50U
 #define ARM_AUTO_WAIT_PUSH_MS 600U
-#define ARM_AUTO_WAIT_RELEASE_HEIGHT_MS 1000U
-#define ARM_AUTO_WAIT_ROTATE_BACK_MS 1000U
-#define ARM_AUTO_WAIT_ROTATE_BACK_AND_RELEASE_HEIGHT 3500U
-#define ARM_AUTO_WAIT_RELEASE_MS 250U
+#define ARM_AUTO_WAIT_RELEASE_HEIGHT_MS 1500U
+#define ARM_AUTO_WAIT_ROTATE_BACK_MS 800U
+#define ARM_AUTO_WAIT_ROTATE_BACK_AND_RELEASE_HEIGHT 2500U
+#define ARM_AUTO_WAIT_RELEASE_MS 500U
 #define ARM_AUTO_WAIT_RESET_POS_MS 2000U
 #define ARM_AUTO_RETRACT_PUSH_ANGLE 0.0f
 #define ARM_AUTO_RETREAT_MIN_TIME_MS 300U
 #define ARM_AUTO_RETREAT_MAX_TIME_MS 2500U
+#define ARM_RAISEANDLOWER_POS_DEADZONE_DEG 10.0f
 
 #define PUMP_VALVE_GPIO_Port GPIOC
 #define PUMP_VALVE_Pin GPIO_PIN_0
@@ -191,6 +192,12 @@ Pump_Config_t pump_config = {
 
 static Pump_t pump;
 
+static void Arm_raiseandlower_set_pos_ref(float position) {
+  arm_pos_height = position;
+  if (pos_raiseandlower_motor != nullptr) {
+    pos_raiseandlower_motor->setRef(position);
+  }
+}
 
 static void Arm_raiseandlower_reset(float vel) {
   vel_raiseandlower_motor->enable();
@@ -262,37 +269,15 @@ void Arm_TIM_Callback(void) {
   vel_raiseandlower_motor->update();
   vel_rotate_motor->update();
   vel_catch_motor->update();
-}
 
-// 将外部速度指令转换为控制器使能/失能动作。
-static void Arm_Contrl_Task(void *argument) {
-  (void)argument;
-  if (!Is_raiseandlower_motor_init) {
-    Arm_raiseandlower_reset(30.0f);
-    Is_raiseandlower_motor_init = true;
-  }
-  if (raiseandlower_motor != nullptr)
-  {
-    raiseandlower_motor->resetAngle();
-  }
-  vel_raiseandlower_motor->getPID().reset();
-  for (;;) {
-    if (arm_vel_out_last != 0) {
-      pos_catch_motor->disable();
-      vel_catch_motor->enable();
-      vel_catch_motor->setRef(arm_vel_out);
+  if (pos_raiseandlower_motor != nullptr && pos_raiseandlower_motor->enabled()) {
+    motors::IMotor *motor = pos_raiseandlower_motor->getMotor();
+    if (motor != nullptr) {
+      const float pos_error = arm_pos_height - motor->getAngle();
+      if (std::fabs(pos_error) <= ARM_RAISEANDLOWER_POS_DEADZONE_DEG) {
+        motor->setCurrent(0.0f);
+      }
     }
-    if (arm_vel_height_last != 0) {
-      pos_raiseandlower_motor->disable();
-      vel_raiseandlower_motor->enable();
-      vel_raiseandlower_motor->setRef(arm_vel_height);
-    }
-    if (arm_vel_rotate_last != 0) {
-      pos_rotate_motor->disable();
-      vel_rotate_motor->enable();
-      vel_rotate_motor->setRef(arm_vel_rotate);
-    }
-    osDelay(10);
   }
 }
 
@@ -458,13 +443,13 @@ static void Arm_softTIM(void *argument) {
       Pump_Catch(&pump, 1);
       switch (g_auto_catch_target_height) {
       case ARM_AUTO_CATCH_LOW:
-        pos_raiseandlower_motor->setRef(ARM_CATCH_HEIGHT_LOW);
+        Arm_raiseandlower_set_pos_ref(ARM_CATCH_HEIGHT_LOW);
         break;
       case ARM_AUTO_CATCH_MID:
-        pos_raiseandlower_motor->setRef(ARM_CATCH_HEIGHT_MID);
+        Arm_raiseandlower_set_pos_ref(ARM_CATCH_HEIGHT_MID);
         break;
       case ARM_AUTO_CATCH_HIGH:
-        pos_raiseandlower_motor->setRef(ARM_CATCH_HEIGHT_HIGH);
+        Arm_raiseandlower_set_pos_ref(ARM_CATCH_HEIGHT_HIGH);
         break;
       }
       if (AutoStepTimeout(ARM_AUTO_WAIT_HEIGHT_MS, now_ms)) {
@@ -500,7 +485,7 @@ static void Arm_softTIM(void *argument) {
       if (AutoStepTimeout(ARM_AUTO_WAIT_ROTATE_BACK_MS, now_ms)) {
         vel_raiseandlower_motor->disable();
         pos_raiseandlower_motor->enable();
-        pos_raiseandlower_motor->setRef(ARM_RELEASE_HEIGHT);
+        Arm_raiseandlower_set_pos_ref(ARM_RELEASE_HEIGHT);
         if(AutoStepTimeout(ARM_AUTO_WAIT_ROTATE_BACK_AND_RELEASE_HEIGHT, now_ms)) {
           AutoCatchEnterState(AUTO_CATCH_RELEASE, now_ms);
         }
@@ -509,7 +494,7 @@ static void Arm_softTIM(void *argument) {
 
     case AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE: // 先去释放高度再旋转的逻辑
       pos_raiseandlower_motor->enable();
-      pos_raiseandlower_motor->setRef(ARM_RELEASE_HEIGHT);
+      Arm_raiseandlower_set_pos_ref(ARM_RELEASE_HEIGHT);
       if (AutoStepTimeout(ARM_AUTO_WAIT_RELEASE_HEIGHT_MS, now_ms)) {
         vel_rotate_motor->disable();
         pos_rotate_motor->enable();
@@ -521,7 +506,7 @@ static void Arm_softTIM(void *argument) {
       break;
 
 
-    case AUTO_CATCH_RELEASE: // 到达释放高度后打开吸泵放下物体，并保持一段时间后结束流程
+    case AUTO_CATCH_RELEASE: // 到达释放高度后关泵放下物体，并保持一段时间后结束流程
 
       vel_catch_motor->disable();
       pos_catch_motor->enable();
@@ -549,7 +534,7 @@ static void Arm_softTIM(void *argument) {
       Is_rotate_motor_out = true;
       vel_raiseandlower_motor->disable();
       pos_raiseandlower_motor->enable();
-      pos_raiseandlower_motor->setRef(ARM_RESET_ANGLE);
+      Arm_raiseandlower_set_pos_ref(ARM_RESET_ANGLE);
        if (AutoStepTimeout(ARM_AUTO_WAIT_RESET_POS_MS, now_ms)) {
         AutoCatchEnterState(AUTO_CATCH_IDLE, now_ms);
       }
@@ -563,6 +548,40 @@ static void Arm_softTIM(void *argument) {
   }
 
 }
+
+
+// 将外部速度指令转换为控制器使能/失能动作。
+static void Arm_Contrl_Task(void *argument) {
+  (void)argument;
+  if (!Is_raiseandlower_motor_init) {
+    Arm_raiseandlower_reset(30.0f);
+    Is_raiseandlower_motor_init = true;
+  }
+  if (raiseandlower_motor != nullptr)
+  {
+    raiseandlower_motor->resetAngle();
+  }
+  vel_raiseandlower_motor->getPID().reset();
+  for (;;) {
+    if (arm_vel_out_last != 0) {
+      pos_catch_motor->disable();
+      vel_catch_motor->enable();
+      vel_catch_motor->setRef(arm_vel_out);
+    }
+    if (arm_vel_height_last != 0) {
+      pos_raiseandlower_motor->disable();
+      vel_raiseandlower_motor->enable();
+      vel_raiseandlower_motor->setRef(arm_vel_height);
+    }
+    if (arm_vel_rotate_last != 0) {
+      pos_rotate_motor->disable();
+      vel_rotate_motor->enable();
+      vel_rotate_motor->setRef(arm_vel_rotate);
+    }
+    osDelay(10);
+  }
+}
+
 
 // 初始化吸泵、控制器与 RTOS 钩子。
 void Arm_Init(void) {
