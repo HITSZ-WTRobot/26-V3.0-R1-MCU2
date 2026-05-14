@@ -275,7 +275,8 @@ void Arm_TIM_Callback(void) {
     if (motor != nullptr) {
       const float pos_error = arm_pos_height - motor->getAngle();
       if (std::fabs(pos_error) <= ARM_RAISEANDLOWER_POS_DEADZONE_DEG) {
-        motor->setCurrent(0.0f);
+        pos_raiseandlower_motor->setRef(motor->getAngle());
+        pos_raiseandlower_motor->update();
       }
     }
   }
@@ -420,7 +421,11 @@ static void Arm_softTIM(void *argument) {
 
   const uint32_t now_ms = HAL_GetTick();
 
-  
+  if (g_auto_catch_state == AUTO_CATCH_IDLE) {
+    pos_catch_motor->enable();
+    pos_catch_motor->setRef(ARM_RESET_ANGLE);
+  }
+
 
   if (g_auto_catch_state != AUTO_CATCH_IDLE) {
     switch (g_auto_catch_state) {
