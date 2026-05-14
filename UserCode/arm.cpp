@@ -637,7 +637,8 @@ void Arm_Init(void)
       new Motor_PosCtrl_t(raiseandlower_motor, arm_raiseandlower_pos_cfg);
 
   Arm_output_reset();
-
+  pos_rotate_motor->enable();
+  pos_rotate_motor->setRef(ARM_RESET_ANGLE);
   ArmHandle = osThreadNew(Arm_Contrl_Task, NULL, &arm_attributes);
   arm_timHandle = osTimerNew(Arm_softTIM, osTimerPeriodic, NULL, NULL);
   osTimerStart(arm_timHandle, 10);
