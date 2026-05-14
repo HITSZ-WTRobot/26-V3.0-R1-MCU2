@@ -13,6 +13,7 @@
 #include "controller.hpp"
 #include "device.hpp"
 #include "flags.hpp"
+#include "led.hpp"
 #include "main.h"
 #include "stm32f4xx_hal_gpio.h"
 #include "tim.h"
@@ -44,6 +45,7 @@ extern "C" void Init(void* argument)
     (void)argument;
     flags_create();
     Controller::app_controller_receive_init();
+    Led::app_led_init();
     Device::app_device_init();
     osDelay(3000);
     Clamp::app_clamp_init();
