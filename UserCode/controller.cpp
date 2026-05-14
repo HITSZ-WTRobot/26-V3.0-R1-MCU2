@@ -196,21 +196,27 @@ static void HandleClampControl(uint32_t btn_state)
         {
             clamp_vel_out = 0.0f;
         }
-    }
-
-    if (btn_state & KEY1)
-    {
-        clamp_vel_yaw = clamp_config::YawManualSpeed;
-    }
-    else if (btn_state & KEY9)
-    {
+        if (btn_state & KEY1)
+        {
+            clamp_vel_yaw = clamp_config::YawManualSpeed;
+        }
+        else if (btn_state & KEY9)
+        {
         clamp_vel_yaw = -clamp_config::YawManualSpeed;
+        }
+        else
+        { 
+            clamp_vel_yaw = 0.0f;
+        }
+    
     }
-    else
+    if(button_state & 0x00040000U)
     {
-        clamp_vel_yaw = 0.0f;
+        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET);
     }
-
+    else {
+        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
+    }
     if (btn_state & KEY2)
     {
         clamp_vel_roll = -clamp_config::RollManualSpeed;
