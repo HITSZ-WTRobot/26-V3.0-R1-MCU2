@@ -11,18 +11,7 @@
 #include <cstdint>
 #include <cstring>
 
-#define KEY1 0x00000001U
-#define KEY2 0x00000002U
-#define KEY3 0x00000004U
-#define KEY4 0x00000008U
-#define KEY5 0x00000010U
-#define KEY6 0x00000020U
-#define KEY7 0x00000040U
-#define KEY8 0x00000080U
-#define KEY9 0x00000100U
-#define KEY10 0x00000200U
-#define KEY11 0x00000400U
-#define KEY12 0x00000800U
+
 
 namespace Controller
 {
@@ -51,7 +40,6 @@ uint32_t decode_count            = 0U;
 uint32_t decode_error_count      = 0U;
 uint32_t decode_success_count    = 0U;
 bool     is_controller_connected = true; 
-uint32_t button_state            = 0U;
 uint8_t  dip_switch              = 0U;
 
 const osThreadAttr_t controller_attributes = {

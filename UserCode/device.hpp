@@ -15,7 +15,7 @@ inline motors::DJIMotor* motor_clamp_out;
 inline motors::DJIMotor* motor_clamp_roll;
 inline motors::DJIMotor* motor_clamp_catch;
 inline motors::DJIMotor* motor_clamp_yaw;
-} // namespace motor
+} // namespace motor 
 void update_1kHz(); // 设备状态更新函数，用于在中断中调用
 void app_device_init();
 

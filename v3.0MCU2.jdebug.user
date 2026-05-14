@@ -1,20 +1,20 @@
 
-OpenDocument="isr_lock.h", FilePath="D:/WTR/Projects/26-V3.0-R1-MCU2/Modules/BasicComponents/utils/isr_lock.h", Line=4
+OpenDocument="isr_lock.h", FilePath="D:/WTR/Projects/26-V3.0-R1-MCU2/Modules/BasicComponents/utils/isr_lock.h", Line=0
 OpenDocument="dji.cpp", FilePath="D:/WTR/Projects/26-V3.0-R1-MCU2/Modules/MotorDrivers/motors/DJI/dji.cpp", Line=191
 OpenDocument="stm32f4xx_hal_tim.c", FilePath="D:/WTR/Projects/26-V3.0-R1-MCU2/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c", Line=3948
 OpenDocument="tasks.c", FilePath="D:/WTR/Projects/26-V3.0-R1-MCU2/Middlewares/Third_Party/FreeRTOS/Source/tasks.c", Line=3420
 OpenDocument="main.c", FilePath="D:/WTR/Projects/26-V3.0-R1-MCU2/Core/Src/main.c", Line=59
 OpenDocument="controller.cpp", FilePath="D:/WTR/Projects/26-V3.0-R1-MCU2/UserCode/controller.cpp", Line=148
 OpenDocument="heap_4.c", FilePath="D:/WTR/Projects/26-V3.0-R1-MCU2/Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c", Line=273
-OpenDocument="app.cpp", FilePath="D:/WTR/Projects/26-V3.0-R1-MCU2/UserCode/app.cpp", Line=10
-OpenDocument="clamp.cpp", FilePath="D:/WTR/Projects/26-V3.0-R1-MCU2/UserCode/clamp.cpp", Line=284
+OpenDocument="app.cpp", FilePath="D:/WTR/Projects/26-V3.0-R1-MCU2/UserCode/app.cpp", Line=11
+OpenDocument="clamp.cpp", FilePath="D:/WTR/Projects/26-V3.0-R1-MCU2/UserCode/clamp.cpp", Line=247
 OpenToolbar="Debug", Floating=0, x=0, y=0
-OpenWindow="Registers 1", DockArea=RIGHT, x=0, y=1, w=316, h=264, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, FilteredItems=[], RefreshRate=1
-OpenWindow="Source Files", DockArea=LEFT, x=0, y=1, w=691, h=145, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=316, h=409, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Registers 1", DockArea=RIGHT, x=0, y=1, w=316, h=279, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, FilteredItems=[], RefreshRate=1
+OpenWindow="Source Files", DockArea=LEFT, x=0, y=1, w=691, h=167, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=316, h=394, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
 OpenWindow="Memory 1", DockArea=BOTTOM, x=2, y=0, w=717, h=301, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, EditorAddress=0x0
-OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=2, w=691, h=323, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Functions", DockArea=LEFT, x=0, y=0, w=691, h=204, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=2, w=691, h=296, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Functions", DockArea=LEFT, x=0, y=0, w=691, h=209, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
 OpenWindow="Terminal", DockArea=BOTTOM, x=1, y=0, w=715, h=301, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
 OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=554, h=301, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
 TableHeader="Functions", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Address";"Size";"#Insts";"Source"], ColWidths=[3089;131;100;116;602]

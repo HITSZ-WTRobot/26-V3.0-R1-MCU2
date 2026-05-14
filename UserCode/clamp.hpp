@@ -16,6 +16,15 @@ enum class ResetProcess
     Unknown,
 };
 
+enum class clamp_status
+{
+    Init = 0,
+    Out,
+    In,
+    Dock,
+};
+
+
 extern float        clamp_vel_out;
 extern float        clamp_vel_yaw;
 extern float        clamp_vel_roll;
