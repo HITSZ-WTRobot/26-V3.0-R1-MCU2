@@ -22,10 +22,9 @@ extern float        clamp_vel_roll;
 extern ResetProcess reset_status;
 
 void Clamp_Init(void);
-void Clamp_Control(void* argument);
-void Clamp_Control_Init(void);
-void Clamp_softTIM(void* argument);
+void ClampControl(void* argument);
+void clamp_control_init(void);
+void clamp_softTIM(void* argument);
 
-void APP_Clamp_BeforeUpdate();
-void APP_Clamp_Update_1kHz();
-void APP_Clamp_Update_100Hz();
+void app_clamp_init();
+void app_clamp_update_1kHz();

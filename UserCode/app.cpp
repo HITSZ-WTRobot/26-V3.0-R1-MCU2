@@ -14,6 +14,7 @@
 #include "device.hpp"
 #include "flags.hpp"
 #include "main.h"
+#include "stm32f4xx_hal_gpio.h"
 #include "tim.h"
 #include "watchdog.hpp"
 
@@ -24,8 +25,8 @@ extern "C" void TIM_Callback_1kHz(TIM_HandleTypeDef* htim)
     service::Watchdog::EatAll();
     Controller::update_1kHz();
     Device::update_1kHz();
-    APP_Clamp_Update_1kHz();
-    APP_Arm_Update_1kHz();
+    app_clamp_update_1kHz();
+    app_arm_update_1kHz();
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
@@ -43,9 +44,9 @@ extern "C" void Init(void* argument)
     flags_create();
     Controller::app_controller_receive_init();
     Device::app_device_init();
-    APP_Clamp_BeforeUpdate();
-    APP_Arm_BeforeUpdate();
-
+    app_clamp_init();
+    app_arm_init();
+    
     HAL_TIM_RegisterCallback(&htim6, HAL_TIM_PERIOD_ELAPSED_CB_ID, TIM_Callback_1kHz);
     HAL_TIM_Base_Start_IT(&htim6);
 

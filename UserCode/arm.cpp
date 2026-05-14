@@ -584,63 +584,42 @@ static void Arm_Contrl_Task(void *argument) {
 
 
 // 初始化吸泵、控制器与 RTOS 钩子。
-void Arm_Init(void) {
-  (void)ARM_CATCH_PUSH_ANGLE;
-  (void)ARM_CATCH_PUSH_ANGLE_MAX;
-  (void)ARM_RELEASE_HEIGHT;
 
-  Pump_Init(&pump, &pump_config);
+namespace
+{
+inline constexpr Motor_VelCtrl_t::Config arm_catch_vel_cfg{
+    .pid = {.Kp = 25.0f, .Ki = 0.15f, .Kd = 20.0f, .abs_output_max = 5000.0f},
+};
+inline constexpr Motor_VelCtrl_t::Config arm_rotate_vel_cfg{
+    .pid = {.Kp = 100.0f, .Ki = 0.8f, .Kd = 1.0f, .abs_output_max = 8000.0f},
+};
+inline constexpr Motor_VelCtrl_t::Config arm_raiseandlower_vel_cfg{
+    .pid = {.Kp = 100.0f, .Ki = 0.8f, .Kd = 1.0f, .abs_output_max = 14000.0f},
+};
+inline constexpr Motor_PosCtrl_t::Config arm_catch_pos_cfg{
+    .position_pid       = {.Kp = 3.0f, .Ki = 0.1f, .Kd = 0.2f, .abs_output_max = 800.0f},
+    .velocity_pid       = {.Kp = 500.0f, .Ki = 0.2f, .Kd = 0.0f, .abs_output_max = 8000.0f},
+    .pos_vel_freq_ratio = 10,
+};
+inline constexpr Motor_PosCtrl_t::Config arm_rotate_pos_cfg{
+    .position_pid       = {.Kp = 1.6f, .Ki = 0.00f, .Kd = 0.6f, .abs_output_max = 100.0f},
+    .velocity_pid       = {.Kp = 500.0f, .Ki = 5.0f, .Kd = 0.5f, .abs_output_max = 12000.0f},
+    .pos_vel_freq_ratio = 1,
+};
+inline constexpr Motor_PosCtrl_t::Config arm_raiseandlower_pos_cfg{
+    .position_pid       = {.Kp = 1.6f, .Ki = 0.0f, .Kd = 0.6f, .abs_output_max = 300.0f},
+    .velocity_pid       = {.Kp = 500.0f, .Ki = 5.0f, .Kd = 0.5f, .abs_output_max = 14000.0f},
+    .pos_vel_freq_ratio = 1,
+};
+} // namespace
 
-  controllers::MotorVelController::Config arm_catch_vel_cfg{};
-  arm_catch_vel_cfg.pid.Kp = 25.0f;
-  arm_catch_vel_cfg.pid.Ki = 0.15f;
-  arm_catch_vel_cfg.pid.Kd = 20.0f;
-  arm_catch_vel_cfg.pid.abs_output_max = 5000.0f;
+void Arm_Init(void)
+{
+    (void)ARM_CATCH_PUSH_ANGLE;
+    (void)ARM_CATCH_PUSH_ANGLE_MAX;
+    (void)ARM_RELEASE_HEIGHT;
 
-  controllers::MotorVelController::Config arm_rotate_vel_cfg{};
-  arm_rotate_vel_cfg.pid.Kp = 100.0f;
-  arm_rotate_vel_cfg.pid.Ki = 0.8f;
-  arm_rotate_vel_cfg.pid.Kd = 1.0f;
-  arm_rotate_vel_cfg.pid.abs_output_max = 8000.0f;
-
-  controllers::MotorVelController::Config arm_raiseandlower_vel_cfg{};
-  arm_raiseandlower_vel_cfg.pid.Kp = 100.0f;
-  arm_raiseandlower_vel_cfg.pid.Ki = 0.8f;
-  arm_raiseandlower_vel_cfg.pid.Kd = 1.0f;
-  arm_raiseandlower_vel_cfg.pid.abs_output_max = 14000.0f;
-
-  controllers::MotorPosController::Config arm_catch_pos_cfg{};
-  arm_catch_pos_cfg.velocity_pid.Kp = 500.0f;
-  arm_catch_pos_cfg.velocity_pid.Ki = 0.2f;
-  arm_catch_pos_cfg.velocity_pid.Kd = 0.0f;
-  arm_catch_pos_cfg.velocity_pid.abs_output_max = 8000.0f;
-  arm_catch_pos_cfg.position_pid.Kp = 3.0f;
-  arm_catch_pos_cfg.position_pid.Ki = 0.1f;
-  arm_catch_pos_cfg.position_pid.Kd = 0.2f;
-  arm_catch_pos_cfg.position_pid.abs_output_max = 800.0f;
-  arm_catch_pos_cfg.pos_vel_freq_ratio = 10;
-
-  controllers::MotorPosController::Config arm_rotate_pos_cfg{};
-  arm_rotate_pos_cfg.velocity_pid.Kp = 500.0f;
-  arm_rotate_pos_cfg.velocity_pid.Ki = 5.0f;
-  arm_rotate_pos_cfg.velocity_pid.Kd = 0.5f;
-  arm_rotate_pos_cfg.velocity_pid.abs_output_max = 12000.0f;
-  arm_rotate_pos_cfg.position_pid.Kp = 1.6f;
-  arm_rotate_pos_cfg.position_pid.Ki = 0.00f;
-  arm_rotate_pos_cfg.position_pid.Kd = 0.6f;
-  arm_rotate_pos_cfg.position_pid.abs_output_max = 100.0f;
-  arm_rotate_pos_cfg.pos_vel_freq_ratio = 1;
-
-  controllers::MotorPosController::Config arm_raiseandlower_pos_cfg{};
-  arm_raiseandlower_pos_cfg.velocity_pid.Kp = 500.0f;
-  arm_raiseandlower_pos_cfg.velocity_pid.Ki = 5.0f;
-  arm_raiseandlower_pos_cfg.velocity_pid.Kd = 0.5f;
-  arm_raiseandlower_pos_cfg.velocity_pid.abs_output_max = 14000.0f;
-  arm_raiseandlower_pos_cfg.position_pid.Kp = 1.6f;
-  arm_raiseandlower_pos_cfg.position_pid.Ki = 0.0f;
-  arm_raiseandlower_pos_cfg.position_pid.Kd = 0.6f;
-  arm_raiseandlower_pos_cfg.position_pid.abs_output_max = 300.0f;
-  arm_raiseandlower_pos_cfg.pos_vel_freq_ratio = 1;
+    Pump_Init(&pump, &pump_config);
 
 
   vel_catch_motor = new Motor_VelCtrl_t(catch_motor, arm_catch_vel_cfg);
@@ -660,10 +639,8 @@ void Arm_Init(void) {
 }
 
 // 应用层钩子：初始化机械臂子系统。
-void APP_Arm_BeforeUpdate() { Arm_Init(); }
+void app_arm_init() { Arm_Init(); }
 
 // 应用层钩子：1 kHz 控制器更新节拍。
-void APP_Arm_Update_1kHz() { Arm_TIM_Callback(); }
+void app_arm_update_1kHz() { Arm_TIM_Callback(); }
 
-// 预留的 100 Hz 钩子。
-void APP_Arm_Update_100Hz() {}

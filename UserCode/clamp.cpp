@@ -7,6 +7,7 @@
 #include "main.h"
 #include "motor_pos_controller.hpp"
 #include "motor_vel_controller.hpp"
+#include "stm32f4xx_hal_gpio.h"
 
 #include <cmath>
 
@@ -23,55 +24,15 @@ namespace
 using MotorPosController = controllers::MotorPosController;
 using MotorVelController = controllers::MotorVelController;
 
-inline constexpr MotorVelController::Config clamp_out_vel_controller_config{
-    .pid = { .Kp = 500.0f, .Ki = 0.1f, .Kd = 0.0f, .abs_output_max = 8000.0f },
-};
-
-inline constexpr MotorVelController::Config clamp_yaw_vel_controller_config{
-    .pid = { .Kp = 45.0f, .Ki = 0.15f, .Kd = 0.0f, .abs_output_max = 8000.0f },
-};
-
-inline constexpr MotorVelController::Config clamp_roll_vel_controller_config{
-    .pid = { .Kp = 500.0f, .Ki = 0.1f, .Kd = 0.0f, .abs_output_max = 8000.0f },
-};
-
-inline constexpr MotorVelController::Config clamp_catch_vel_controller_config{
-    .pid = { .Kp = 500.0f, .Ki = 0.1f, .Kd = 0.0f, .abs_output_max = 4500.0f },
-};
-
-inline constexpr MotorPosController::Config clamp_out_pos_controller_config{
-    .position_pid       = { .Kp = 2.0f, .Ki = 0.0f, .Kd = 0.2f, .abs_output_max = 400.0f },
-    .velocity_pid       = { .Kp = 500.0f, .Ki = 0.10f, .Kd = 0.0f, .abs_output_max = 8000.0f },
-    .pos_vel_freq_ratio = 10U,
-};
-
-inline constexpr MotorPosController::Config clamp_roll_pos_controller_config{
-    .position_pid       = { .Kp = 2.0f, .Ki = 0.0f, .Kd = 0.2f, .abs_output_max = 400.0f },
-    .velocity_pid       = { .Kp = 500.0f, .Ki = 0.10f, .Kd = 0.0f, .abs_output_max = 8000.0f },
-    .pos_vel_freq_ratio = 10U,
-};
-
-inline constexpr MotorPosController::Config clamp_yaw_pos_controller_config{
-    .position_pid       = { .Kp = 80.0f, .Ki = 1.0f, .Kd = 0.0f, .abs_output_max = 2000.0f },
-    .velocity_pid       = { .Kp = 12.0f, .Ki = 0.20f, .Kd = 5.0f, .abs_output_max = 8000.0f },
-    .pos_vel_freq_ratio = 10U,
-};
-
-inline constexpr MotorPosController::Config clamp_catch_pos_controller_config{
-    .position_pid       = { .Kp = 2.0f, .Ki = 0.0f, .Kd = 0.2f, .abs_output_max = 400.0f },
-    .velocity_pid       = { .Kp = 500.0f, .Ki = 0.10f, .Kd = 0.0f, .abs_output_max = 4500.0f },
-    .pos_vel_freq_ratio = 10U,
-};
-
 inline constexpr uint32_t soft_timer_period_ms      = 20U;
 inline constexpr uint32_t control_task_delay_ms     = 100U;
-inline constexpr float    out_reset_seek_velocity   = 100.0f;
-inline constexpr float    out_reset_lock_threshold  = 1500.0f;
+inline constexpr float    out_reset_seek_velocity   = -100.0f;
+inline constexpr float    out_reset_lock_threshold  = 1000.0f;
 inline constexpr uint32_t out_reset_hold_ms         = 500U;
-inline constexpr float    yaw_reset_seek_velocity   = 50.0f;
+inline constexpr float    yaw_reset_seek_velocity   = -50.0f;
 inline constexpr float    yaw_reset_lock_threshold  = 1500.0f;
 inline constexpr uint32_t yaw_reset_hold_ms         = 500U;
-inline constexpr float    yaw_reset_hold_position   = 0.0f;
+inline constexpr float    yaw_reset_hold_position   = 90.0f;
 inline constexpr float    catch_closed_angle        = 150.0f;
 inline constexpr float    zero_velocity_epsilon     = 1e-4f;
 inline constexpr uint32_t clamp_reset_event_flag    = 0x00000080U;
@@ -255,19 +216,21 @@ void finish_clamp_yaw_reset()
 
 void Clamp_Init(void)
 {
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
     clamp_out_vel_controller =
-            new MotorVelController(motor_clamp_out, clamp_out_vel_controller_config);
+            new MotorVelController(motor_clamp_out, MotorVelController::Config{.pid = AppConfig::Clamp::kM2006PosConfig.velocity_pid});
     clamp_yaw_vel_controller =
-            new MotorVelController(motor_clamp_yaw, clamp_yaw_vel_controller_config);
+            new MotorVelController(motor_clamp_yaw, MotorVelController::Config{.pid = AppConfig::Clamp::kM3508PosConfig.velocity_pid});
     clamp_roll_vel_controller =
-            new MotorVelController(motor_clamp_roll, clamp_roll_vel_controller_config);
+            new MotorVelController(motor_clamp_roll, MotorVelController::Config{.pid = AppConfig::Clamp::kM2006PosConfig.velocity_pid});
     clamp_catch_vel_controller =
-            new MotorVelController(motor_clamp_catch, clamp_catch_vel_controller_config);
+            new MotorVelController(motor_clamp_catch, MotorVelController::Config{.pid = AppConfig::Clamp::kM2006PosConfig.velocity_pid});
 
-    clamp_out_pos   = new MotorPosController(motor_clamp_out, clamp_out_pos_controller_config);
-    clamp_roll_pos  = new MotorPosController(motor_clamp_roll, clamp_roll_pos_controller_config);
-    clamp_yaw_pos   = new MotorPosController(motor_clamp_yaw, clamp_yaw_pos_controller_config);
-    clamp_catch_pos = new MotorPosController(motor_clamp_catch, clamp_catch_pos_controller_config);
+    clamp_out_pos   = new MotorPosController(motor_clamp_out, AppConfig::Clamp::kM2006PosConfig);
+    clamp_roll_pos  = new MotorPosController(motor_clamp_roll, AppConfig::Clamp::kM2006PosConfig);
+    clamp_yaw_pos   = new MotorPosController(motor_clamp_yaw, AppConfig::Clamp::kM3508PosConfig);
+    clamp_catch_pos = new MotorPosController(motor_clamp_catch, AppConfig::Clamp::kM2006PosConfig);
 
     clamp_out_pos->disable();
     clamp_roll_pos->disable();
@@ -283,15 +246,15 @@ void Clamp_Init(void)
     clamp_yaw_mode  = ControlMode::Vel;
 }
 
-void Clamp_Control_Init(void)
+void clamp_control_init(void)
 {
-    osThreadNew(Clamp_Control, nullptr, &clamp_attributes);
+    osThreadNew(ClampControl, nullptr, &clamp_attributes);
     const osTimerId_t clamp_timer_handle =
-            osTimerNew(Clamp_softTIM, osTimerPeriodic, nullptr, nullptr);
+            osTimerNew(clamp_softTIM, osTimerPeriodic, nullptr, nullptr);
     osTimerStart(clamp_timer_handle, soft_timer_period_ms);
 }
 
-void Clamp_Control(void* argument)
+void ClampControl(void* argument)
 {
     (void)argument;
 
@@ -316,7 +279,7 @@ void Clamp_Control(void* argument)
     }
 }
 
-void Clamp_softTIM(void* argument)
+void clamp_softTIM(void* argument)
 {
     (void)argument;
 
@@ -337,18 +300,21 @@ void Clamp_softTIM(void* argument)
         {
             catch_angle = 0.0f;
         }
+        osDelay(1000);
+        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_3);
+        // HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET);
     }
 }
 
-void APP_Clamp_BeforeUpdate()
+void app_clamp_init()
 {
     Clamp_Init();
-    Clamp_Control_Init();
+    clamp_control_init();
 }
 
-void APP_Clamp_Update_1kHz()
+void app_clamp_update_1kHz()
 {
     clamp_timer_callback();
 }
 
-void APP_Clamp_Update_100Hz() {}
+    
