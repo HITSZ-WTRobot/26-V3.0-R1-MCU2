@@ -4,9 +4,9 @@
 *                         www.segger.com                             *
 **********************************************************************
 
-File          : 
-Created       : 11. May 2026 22:12
-Ozone Version : V3.40h
+File          : D:/WTR/Projects/26-V3.0-R1-MCU2/debug.jdebug
+Created       : 15 May 2026 19:57
+Ozone Version : V3.24
 */
 
 /*********************************************************************
@@ -22,19 +22,16 @@ void OnProjectLoad (void) {
   //
   // Dialog-generated settings
   //
-  Debug.SetResetMode (RM_RESET_AND_RUN);
-  Project.AddPathSubstitute ("D:/WTR/26-V3.0-R1-MCU2", "$(ProjectDir)");
-  Project.AddPathSubstitute ("d:/wtr/26-v3.0-r1-mcu2", "$(ProjectDir)");
+  Project.AddPathSubstitute ("D:/WTR/Projects/26-V3.0-R1-MCU2", "$(ProjectDir)");
+  Project.AddPathSubstitute ("d:/wtr/projects/26-v3.0-r1-mcu2", "$(ProjectDir)");
   Project.SetDevice ("STM32F407VE");
-  Project.SetHostIF ("USB", "");
+  Project.SetHostIF ("USB", "123456");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M4F.svd");
-  Project.AddSvdFile ("$(InstallDir)/Config/Peripherals/STM32F407IG.svd");
   //
   // User settings
   //
-  Project.SetOSPlugin ("FreeRTOSPlugin");
   File.Open ("$(ProjectDir)/build/Debug/26-V3.0-R1-MCU2.elf");
 }
 
@@ -300,31 +297,6 @@ void AfterTargetDownload (void) {
 **********************************************************************
 */
 //void OnError (void) {
-//}
-
-/*********************************************************************
-*
-*       AfterProjectLoad
-*
-* Function description
-*   After Project load routine. Optional.
-*
-**********************************************************************
-*/
-//void AfterProjectLoad (void) {
-//}
-
-/*********************************************************************
-*
-*       OnDebugStartBreakSymbolReached
-*
-* Function description
-*   Called when program execution has reached/passed
-*   the symbol to be breaked at during debug start. Optional.
-*
-**********************************************************************
-*/
-//void OnDebugStartBreakSymReached (void) {
 //}
 
 /*********************************************************************
