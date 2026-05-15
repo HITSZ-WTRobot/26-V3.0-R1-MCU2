@@ -22,6 +22,7 @@ void OnProjectLoad (void) {
   //
   // Dialog-generated settings
   //
+  Debug.SetResetMode (RM_RESET_AND_RUN);
   Project.AddPathSubstitute ("D:/WTR/26-V3.0-R1-MCU2", "$(ProjectDir)");
   Project.AddPathSubstitute ("d:/wtr/26-v3.0-r1-mcu2", "$(ProjectDir)");
   Project.SetDevice ("STM32F407VE");
@@ -33,7 +34,7 @@ void OnProjectLoad (void) {
   //
   // User settings
   //
-  Project.SetOSPlugin ("FreeRTOSPlugin_Cortex-M");
+  Project.SetOSPlugin ("FreeRTOSPlugin");
   File.Open ("$(ProjectDir)/build/Debug/26-V3.0-R1-MCU2.elf");
 }
 
