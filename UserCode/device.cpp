@@ -18,7 +18,7 @@ constexpr motors::DJIMotor::Config catch_motor_config = {
     .type      = motors::DJIMotor::Type::M2006_C610,
     .id1       = 2,
     .auto_zero = false,
-    .reverse   =  false,
+    .reverse   = false,
 };
 
 constexpr motors::DJIMotor::Config raiseandlower_motor_config = {
@@ -61,6 +61,14 @@ constexpr motors::DJIMotor::Config motor_clamp_catch_config = {
     .reverse   = false,
 };
 
+constexpr motors::DJIMotor::Config motor_push_config = {
+    .hcan      = &hcan2,
+    .type      = motors::DJIMotor::Type::M2006_C610,
+    .id1       = 5,
+    .auto_zero = true,
+    .reverse   = false,
+};
+
 void can_init()
 {
     motors::DJIMotor::CAN_FilterInit(&hcan1, 0);
@@ -87,6 +95,7 @@ void motor_init()
     motor::motor_clamp_roll    = new DJIMotor(motor_clamp_roll_config);
     motor::motor_clamp_yaw     = new DJIMotor(motor_clamp_yaw_config);
     motor::motor_clamp_catch   = new DJIMotor(motor_clamp_catch_config);
+    motor::motor_push          = new DJIMotor(motor_push_config);
 }
 
 void app_device_init()
@@ -99,12 +108,11 @@ bool app_device_IsAllConnected()
 {
     bool all_connected = true;
     all_connected &= (motor::rotate_motor != nullptr) && motor::rotate_motor->isConnected();
-    all_connected &=
-            (motor::raiseandlower_motor != nullptr) && motor::raiseandlower_motor->isConnected();
+    all_connected &= (motor::raiseandlower_motor != nullptr) &&
+                     motor::raiseandlower_motor->isConnected();
     all_connected &= (motor::catch_motor != nullptr) && motor::catch_motor->isConnected();
     all_connected &= (motor::motor_clamp_out != nullptr) && motor::motor_clamp_out->isConnected();
-    all_connected &= (motor::motor_clamp_roll != nullptr) &&
-                     motor::motor_clamp_roll->isConnected();
+    all_connected &= (motor::motor_clamp_roll != nullptr) && motor::motor_clamp_roll->isConnected();
     all_connected &= (motor::motor_clamp_yaw != nullptr) && motor::motor_clamp_yaw->isConnected();
     all_connected &= (motor::motor_clamp_catch != nullptr) &&
                      motor::motor_clamp_catch->isConnected();

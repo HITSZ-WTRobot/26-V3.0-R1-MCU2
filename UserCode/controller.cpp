@@ -6,12 +6,11 @@
 #include "flags.hpp"
 #include "usart.h"
 #include "watchdog.hpp"
+#include "push.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-
-
 
 namespace Controller
 {
@@ -20,26 +19,26 @@ namespace
 {
 namespace clamp_config = AppConfig::Clamp;
 
-inline constexpr uint8_t raw_data_size      = 13U;
-inline constexpr uint8_t ring_buffer_size   = 64U;
-inline constexpr uint8_t frame_header_1     = 0xAAU;
-inline constexpr uint8_t frame_header_2     = 0xBBU;
-inline constexpr uint8_t dip_switch_index   = 9U;
-inline constexpr uint8_t button_high_index  = 10U;
-inline constexpr uint8_t button_low_index   = 11U;
-inline constexpr uint8_t crc_index          = 12U;
-inline constexpr uint8_t payload_offset     = 2U;
-inline constexpr uint8_t payload_size       = raw_data_size - 3U;//参与crc校验的实际字节数
+inline constexpr uint8_t  raw_data_size     = 13U;
+inline constexpr uint8_t  ring_buffer_size  = 64U;
+inline constexpr uint8_t  frame_header_1    = 0xAAU;
+inline constexpr uint8_t  frame_header_2    = 0xBBU;
+inline constexpr uint8_t  dip_switch_index  = 9U;
+inline constexpr uint8_t  button_high_index = 10U;
+inline constexpr uint8_t  button_low_index  = 11U;
+inline constexpr uint8_t  crc_index         = 12U;
+inline constexpr uint8_t  payload_offset    = 2U;
+inline constexpr uint8_t  payload_size = raw_data_size - 3U; // 参与crc校验的实际字节数
 inline constexpr uint32_t watchdog_feed_ttl = 500U;
 
-uint8_t  rx_dma_buffer[raw_data_size];  
+uint8_t  rx_dma_buffer[raw_data_size];
 uint8_t  rx_ring_buffer[ring_buffer_size];
 uint8_t  read_index              = 0U;
 uint8_t  write_index             = 0U;
 uint32_t decode_count            = 0U;
 uint32_t decode_error_count      = 0U;
 uint32_t decode_success_count    = 0U;
-bool     is_controller_connected = true; 
+bool     is_controller_connected = true;
 uint8_t  dip_switch              = 0U;
 
 const osThreadAttr_t controller_attributes = {
@@ -144,81 +143,92 @@ static void HandleArmControl(uint16_t falling_buttons)
     {
         // Auto_height is defined by DIP switch bits 5 and 6.
         // 00 -> 0, 01 -> 1, 10 -> 2.
-        const uint8_t auto_height_bits = (dip_switch >> 5U) & 0x03U;
-        ArmAutoCatchLevel auto_height_level = ARM_AUTO_CATCH_LOW;
+        const uint8_t          auto_height_bits  = (dip_switch >> 5U) & 0x03U;
+        Arm::ArmAutoCatchLevel auto_height_level = Arm::ARM_AUTO_CATCH_LOW;
 
         if (auto_height_bits == 1U)
         {
-            auto_height_level = ARM_AUTO_CATCH_MID;
+            auto_height_level = Arm::ARM_AUTO_CATCH_MID;
         }
         else if (auto_height_bits == 2U)
         {
-            auto_height_level = ARM_AUTO_CATCH_HIGH;
+            auto_height_level = Arm::ARM_AUTO_CATCH_HIGH;
         }
 
-        Arm_AutoCatchStart(auto_height_level);
+        Arm::Arm_AutoCatchStart(auto_height_level);
     }
     if ((falling_buttons & KEY4) != 0U)
     {
-        Arm_Rotate_Out(true);
+        Arm::Arm_Rotate_Out(true);
     }
     if ((falling_buttons & KEY3) != 0U)
     {
-        Arm_Rotate_Back(true);
+        Arm::Arm_Rotate_Back(true);
     }
 }
 
 static void HandleClampControl(uint32_t btn_state)
 {
-    if (reset_status == ResetProcess::Success)
+    if (Clamp::reset_status == Clamp::ResetProcess::Success)
     {
         if (btn_state & KEY5)
         {
-            clamp_vel_out = -clamp_config::OutManualSpeed;
+            Clamp::clamp_vel_out = -clamp_config::OutManualSpeed;
         }
         else if (btn_state & KEY6)
         {
-            clamp_vel_out = clamp_config::OutManualSpeed;
+            Clamp::clamp_vel_out = clamp_config::OutManualSpeed;
         }
         else
         {
-            clamp_vel_out = 0.0f;
+            Clamp::clamp_vel_out = 0.0f;
         }
         if (btn_state & KEY1)
         {
-            clamp_vel_yaw = clamp_config::YawManualSpeed;
+            Clamp::clamp_vel_yaw = clamp_config::YawManualSpeed;
         }
         else if (btn_state & KEY9)
         {
-        clamp_vel_yaw = -clamp_config::YawManualSpeed;
+            Clamp::clamp_vel_yaw = -clamp_config::YawManualSpeed;
         }
         else
-        { 
-            clamp_vel_yaw = 0.0f;
+        {
+            Clamp::clamp_vel_yaw = 0.0f;
         }
-    
     }
-    if(button_state & 0x00040000U)
+    if (button_state & 0x00040000U)
     {
         HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET);
     }
-    else {
+    else
+    {
         HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
     }
     if (btn_state & KEY2)
     {
-        clamp_vel_roll = -clamp_config::RollManualSpeed;
+        Clamp::clamp_vel_roll = -clamp_config::RollManualSpeed;
     }
     else if (btn_state & KEY10)
     {
-        clamp_vel_roll = clamp_config::RollManualSpeed;
+        Clamp::clamp_vel_roll = clamp_config::RollManualSpeed;
     }
     else
     {
-        clamp_vel_roll = 0.0f;
+        Clamp::clamp_vel_roll = 0.0f;
     }
 }
 
+static void HandlePushControl(uint32_t btn_state)
+{
+    if (btn_state & KEY8)
+    {
+        Push::target_vel = 40.0f;
+    }
+    else
+    {
+        Push::target_vel = 0.0f;
+    }
+}
 
 } // namespace
 
@@ -250,18 +260,17 @@ extern "C" void controller_task(void* argument)
                 const uint16_t current_buttons =
                         (uint16_t)((static_cast<uint16_t>(msg_read(button_high_index)) << 8) |
                                    msg_read(button_low_index));
-                const uint16_t falling_buttons =
-                        (uint16_t)(previous_buttons & ~current_buttons);
+                const uint16_t falling_buttons = (uint16_t)(previous_buttons & ~current_buttons);
 
                 button_state = static_cast<uint32_t>(current_buttons) |
                                (static_cast<uint32_t>(dip_switch) << 16);
-                const uint32_t event_flags =
-                        static_cast<uint32_t>(falling_buttons) |
-                        (static_cast<uint32_t>(dip_switch) << 16);
+                const uint32_t event_flags = static_cast<uint32_t>(falling_buttons) |
+                                             (static_cast<uint32_t>(dip_switch) << 16);
                 osEventFlagsSet(flags_id, event_flags);
                 previous_buttons = current_buttons;
                 HandleArmControl(falling_buttons);
                 HandleClampControl(button_state);
+                HandlePushControl(button_state);
 
                 decode_success_count++;
                 controller_watchdog.feed(watchdog_feed_ttl);
