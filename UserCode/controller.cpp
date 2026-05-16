@@ -43,7 +43,7 @@ uint8_t  dip_switch              = 0U;
 
 const osThreadAttr_t controller_attributes = {
     .name       = "controller",
-    .stack_size = 128 * 8,
+    .stack_size = 128 * 4,
     .priority   = (osPriority_t)osPriorityHigh,
 };
 
