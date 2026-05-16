@@ -48,6 +48,7 @@ extern "C" void Init(void* argument)
     Device::app_device_init();
     Clamp::app_clamp_init();
     Arm::app_arm_init();
+    Push::app_push_init();
 
     HAL_TIM_RegisterCallback(&htim6, HAL_TIM_PERIOD_ELAPSED_CB_ID, TIM_Callback_1kHz);
     HAL_TIM_Base_Start_IT(&htim6);

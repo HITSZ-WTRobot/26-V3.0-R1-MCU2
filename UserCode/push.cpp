@@ -1,4 +1,5 @@
 #include "push.hpp"
+#include "cmsis_os2.h"
 #include "device.hpp"
 #include "motor_pos_controller.hpp"
 #include "motor_vel_controller.hpp"
@@ -76,13 +77,20 @@ static void update_axis_controller(MotorPosController* position_controller,
 
 void PushControl(void* argument)
 {
-    if (button_state & PUSH_MASK)
+    (void)argument;
+
+    for (;;)
     {
-        __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 2500);
-    }
-    else
-    {
-        __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 500);
+        if (button_state & PUSH_MASK)
+        {
+            __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 2500);
+        }
+        else
+        {
+            __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 500);
+        }
+
+        osDelay(100);
     }
 }
 
@@ -104,6 +112,11 @@ static void push_control_init(void)
 
 static void push_timer_callback()
 {
+    if (push_pos == nullptr || push_vel == nullptr)
+    {
+        return;
+    }
+
     hold_axis_position(push_pos, push_vel, push_mode, target_vel, target_pos);
     update_axis_controller(push_pos, push_vel, push_mode, target_vel, target_pos);
 }
