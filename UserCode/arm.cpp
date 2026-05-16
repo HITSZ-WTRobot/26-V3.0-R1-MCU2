@@ -177,6 +177,7 @@ enum AutoCatchState {
 static volatile AutoCatchState    g_auto_catch_state          = AUTO_CATCH_IDLE;
 static volatile uint32_t          g_auto_catch_state_start_ms = 0;
 static volatile ArmAutoCatchLevel g_auto_catch_target_height  = ARM_AUTO_CATCH_HIGH;
+static volatile bool              g_auto_catch_continue       = false;
 
 // ================================= 机械臂控制相关变量与函数声明
 // ===================================
@@ -318,6 +319,10 @@ static void AutoCatchEnterState(AutoCatchState state, uint32_t now_ms)
 {
     g_auto_catch_state          = state;
     g_auto_catch_state_start_ms = now_ms;
+    if (state == AUTO_CATCH_BACK)
+    {
+        g_auto_catch_continue = false;
+    }
 }
 
 // 返回自动抓取流程是否在运行。
@@ -402,9 +407,18 @@ bool Arm_AutoCatchStart(ArmAutoCatchLevel level)
     arm_vel_out_last    = 0;
     arm_vel_rotate_last = 0;
     arm_vel_height_last = 0;
+    g_auto_catch_continue = false;
 
     AutoCatchEnterState(AUTO_CATCH_ROTATE, HAL_GetTick());
     return true;
+}
+
+void Arm_AutoCatchContinue()
+{
+    if (g_auto_catch_state == AUTO_CATCH_BACK)
+    {
+        g_auto_catch_continue = true;
+    }
 }
 
 void Arm_Rotate_Out(bool enable)
@@ -533,9 +547,10 @@ static void Arm_softTIM(void* argument)
       vel_catch_motor->disable();
       pos_catch_motor->enable();
       pos_catch_motor->setRef(ARM_AUTO_RETRACT_PUSH_ANGLE);
-      if(AutoStepTimeout(ARM_AUTO_WAIT_PUSH_MS,  now_ms)) {
-        
-        switch(g_auto_catch_target_height) {
+            if (AutoStepTimeout(ARM_AUTO_WAIT_PUSH_MS, now_ms) && g_auto_catch_continue) {
+
+                g_auto_catch_continue = false;
+                switch (g_auto_catch_target_height) {
           case ARM_AUTO_CATCH_LOW:
           case ARM_AUTO_CATCH_MID:
             AutoCatchEnterState(AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE, now_ms);
