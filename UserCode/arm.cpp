@@ -116,22 +116,22 @@ static void Pump_Init(Pump_t* hpump, const Pump_Config_t* config)
 }
 
 // ================================= 机械臂控制参数 =======================================
-#define ARM_RESET_ANGLE          0.0f  // 初始位置的值设定
-#define ARM_CATCH_PUSH_ANGLE     85.0f // 初始位置为收在最里面
+#define ARM_RESET_ANGLE 0.0f //初始位置的值设定
+#define ARM_CATCH_PUSH_ANGLE 80.0f //初始位置为收在最里面
 #define ARM_CATCH_PUSH_ANGLE_MAX 90.0f
-#define ARM_CATCH_HEIGHT_LOW     -1300.0f // 初始位置为顶端，这个值是从顶端往下数的，负值
-#define ARM_CATCH_HEIGHT_MID     -707.0f
-#define ARM_CATCH_HEIGHT_HIGH    0.0f
-#define ARM_RELEASE_HEIGHT       -229.0f
-#define ARM_ROTATE_ANGLE         -300.0f // 这个是从收回转到取物是-360，
-#define ARM_ROTATE_RELEASE_ANGLE 60.0f // 这个是从收回转到放物时的旋转角度，60是先放物的角度
+#define ARM_CATCH_HEIGHT_LOW -1300.0f //初始位置为顶端，这个值是从顶端往下数的，负值
+#define ARM_CATCH_HEIGHT_MID -707.0f
+#define ARM_CATCH_HEIGHT_HIGH 0.0f
+#define ARM_RELEASE_HEIGHT -150.0f
+#define ARM_ROTATE_ANGLE -300.0f //这个是从收回转到取物是-360，
+#define ARM_ROTATE_RELEASE_ANGLE 60.0f //这个是从收回转到放物时的旋转角度，60是先放物的角度
 
-#define ARM_AUTO_WAIT_HEIGHT_MS                      500U
-#define ARM_AUTO_WAIT_ROTATE_MS                      500U
-#define ARM_AUTO_WAIT_PUMP_ON_MS                     50U
-#define ARM_AUTO_WAIT_PUSH_MS                        600U
-#define ARM_AUTO_WAIT_RELEASE_HEIGHT_MS              1500U
-#define ARM_AUTO_WAIT_ROTATE_BACK_MS                 800U
+#define ARM_AUTO_WAIT_HEIGHT_MS 500U
+#define ARM_AUTO_WAIT_ROTATE_MS 500U
+#define ARM_AUTO_WAIT_PUMP_ON_MS 50U
+#define ARM_AUTO_WAIT_PUSH_MS 500U
+#define ARM_AUTO_WAIT_RELEASE_HEIGHT_MS 1500U
+#define ARM_AUTO_WAIT_ROTATE_BACK_MS 800U
 #define ARM_AUTO_WAIT_ROTATE_BACK_AND_RELEASE_HEIGHT 2500U
 #define ARM_AUTO_WAIT_RELEASE_MS                     500U
 #define ARM_AUTO_WAIT_RESET_POS_MS                   2000U
@@ -162,16 +162,16 @@ float arm_pos_out         = 0;
 float arm_pos_rotate      = 0;
 float arm_pos_height      = 0;
 
-enum AutoCatchState
-{
-    AUTO_CATCH_IDLE = 0,
-    AUTO_CATCH_ROTATE,
-    AUTO_CATCH_HEIGHT_AND_PUMP,
-    AUTO_CATCH_PUSH_OUT,
-    AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE,
-    AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT,
-    AUTO_CATCH_RELEASE,
-    AUTO_RESET_POS
+enum AutoCatchState {
+  AUTO_CATCH_IDLE = 0,
+  AUTO_CATCH_ROTATE,
+  AUTO_CATCH_HEIGHT_AND_PUMP,
+  AUTO_CATCH_PUSH_OUT,
+  AUTO_CATCH_BACK,
+  AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE,
+  AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT,
+  AUTO_CATCH_RELEASE,
+  AUTO_RESET_POS
 };
 
 static volatile AutoCatchState    g_auto_catch_state          = AUTO_CATCH_IDLE;
@@ -520,28 +520,32 @@ static void Arm_softTIM(void* argument)
             }
             break;
 
-        case AUTO_CATCH_PUSH_OUT: // 向前推出吸取卷轴，注意对不同高度的卷轴之后先旋转还是先去释放位置顺序不同
-            vel_catch_motor->disable();
-            pos_catch_motor->enable();
-            pos_catch_motor->setRef(ARM_CATCH_PUSH_ANGLE);
-            if (AutoStepTimeout(ARM_AUTO_WAIT_PUSH_MS, now_ms))
-            {
-                vel_catch_motor->disable();
-                pos_catch_motor->enable();
+    case AUTO_CATCH_PUSH_OUT: // 向前推出吸取卷轴，注意对不同高度的卷轴之后先旋转还是先去释放位置顺序不同
+      vel_catch_motor->disable();
+      pos_catch_motor->enable();
+      pos_catch_motor->setRef(ARM_CATCH_PUSH_ANGLE);
+      if (AutoStepTimeout(ARM_AUTO_WAIT_PUSH_MS, now_ms)) {
+        AutoCatchEnterState(AUTO_CATCH_BACK, now_ms);
+      }
+      break;
 
-                pos_catch_motor->setRef(ARM_AUTO_RETRACT_PUSH_ANGLE);
-                switch (g_auto_catch_target_height)
-                {
-                case ARM_AUTO_CATCH_LOW:
-                case ARM_AUTO_CATCH_MID:
-                    AutoCatchEnterState(AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE, now_ms);
-                    break;
-                case ARM_AUTO_CATCH_HIGH:
-                    AutoCatchEnterState(AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT, now_ms);
-                    break;
-                }
-            }
+    case AUTO_CATCH_BACK: // 推出后把机械臂收回，准备去放物位置
+      vel_catch_motor->disable();
+      pos_catch_motor->enable();
+      pos_catch_motor->setRef(ARM_AUTO_RETRACT_PUSH_ANGLE);
+      if(AutoStepTimeout(ARM_AUTO_WAIT_PUSH_MS,  now_ms)) {
+        
+        switch(g_auto_catch_target_height) {
+          case ARM_AUTO_CATCH_LOW:
+          case ARM_AUTO_CATCH_MID:
+            AutoCatchEnterState(AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE, now_ms);
             break;
+          case ARM_AUTO_CATCH_HIGH:
+            AutoCatchEnterState(AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT, now_ms);
+            break;
+        }
+      }
+      break;
 
         case AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT: // 先旋转再去释放高度的逻辑
             vel_rotate_motor->disable();
@@ -619,41 +623,17 @@ static void Arm_softTIM(void* argument)
 }
 
 // 将外部速度指令转换为控制器使能/失能动作。
-static void Arm_Contrl_Task(void* argument)
-{
-    (void)argument;
-    if (!Is_raiseandlower_motor_init)
-    {
-        Arm_raiseandlower_reset(30.0f);
-        Is_raiseandlower_motor_init = true;
-    }
-    if (raiseandlower_motor != nullptr)
-    {
-        raiseandlower_motor->resetAngle();
-    }
-    vel_raiseandlower_motor->getPID().reset();
-    for (;;)
-    {
-        if (arm_vel_out_last != 0)
-        {
-            pos_catch_motor->disable();
-            vel_catch_motor->enable();
-            vel_catch_motor->setRef(arm_vel_out);
-        }
-        if (arm_vel_height_last != 0)
-        {
-            pos_raiseandlower_motor->disable();
-            vel_raiseandlower_motor->enable();
-            vel_raiseandlower_motor->setRef(arm_vel_height);
-        }
-        if (arm_vel_rotate_last != 0)
-        {
-            pos_rotate_motor->disable();
-            vel_rotate_motor->enable();
-            vel_rotate_motor->setRef(arm_vel_rotate);
-        }
-        osDelay(10);
-    }
+static void Arm_Contrl_Task(void *argument) {
+  (void)argument;
+    Arm_raiseandlower_reset(30.0f);
+  if (raiseandlower_motor != nullptr)
+  {
+    raiseandlower_motor->resetAngle();
+  }
+  vel_raiseandlower_motor->getPID().reset();
+  for (;;) {
+    osDelay(10);
+  }
 }
 
 // 初始化吸泵、控制器与 RTOS 钩子。
@@ -675,8 +655,8 @@ inline constexpr Motor_PosCtrl_t::Config arm_catch_pos_cfg{
     .pos_vel_freq_ratio = 10,
 };
 inline constexpr Motor_PosCtrl_t::Config arm_rotate_pos_cfg{
-    .position_pid       = { .Kp = 1.6f, .Ki = 0.00f, .Kd = 0.6f, .abs_output_max = 100.0f },
-    .velocity_pid       = { .Kp = 500.0f, .Ki = 5.0f, .Kd = 0.5f, .abs_output_max = 12000.0f },
+  .position_pid       = {.Kp = 1.2f, .Ki = 0.00f, .Kd = 0.3f, .abs_output_max = 100.0f},
+    .velocity_pid       = {.Kp = 500.0f, .Ki = 5.0f, .Kd = 0.5f, .abs_output_max = 12000.0f},
     .pos_vel_freq_ratio = 1,
 };
 inline constexpr Motor_PosCtrl_t::Config arm_raiseandlower_pos_cfg{
