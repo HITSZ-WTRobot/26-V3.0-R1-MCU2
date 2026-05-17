@@ -117,19 +117,19 @@ static void Pump_Init(Pump_t* hpump, const Pump_Config_t* config)
 
 // ================================= 机械臂控制参数 =======================================
 #define ARM_RESET_ANGLE          0.0f  // 初始位置的值设定
-#define ARM_CATCH_PUSH_ANGLE     85.0f // 初始位置为收在最里面
+#define ARM_CATCH_PUSH_ANGLE     80.0f // 初始位置为收在最里面
 #define ARM_CATCH_PUSH_ANGLE_MAX 90.0f
 #define ARM_CATCH_HEIGHT_LOW     -1300.0f // 初始位置为顶端，这个值是从顶端往下数的，负值
 #define ARM_CATCH_HEIGHT_MID     -707.0f
 #define ARM_CATCH_HEIGHT_HIGH    0.0f
-#define ARM_RELEASE_HEIGHT       -229.0f
+#define ARM_RELEASE_HEIGHT       -150.0f
 #define ARM_ROTATE_ANGLE         -300.0f // 这个是从收回转到取物是-360，
 #define ARM_ROTATE_RELEASE_ANGLE 60.0f // 这个是从收回转到放物时的旋转角度，60是先放物的角度
 
 #define ARM_AUTO_WAIT_HEIGHT_MS                      500U
 #define ARM_AUTO_WAIT_ROTATE_MS                      500U
 #define ARM_AUTO_WAIT_PUMP_ON_MS                     50U
-#define ARM_AUTO_WAIT_PUSH_MS                        600U
+#define ARM_AUTO_WAIT_PUSH_MS                        500U
 #define ARM_AUTO_WAIT_RELEASE_HEIGHT_MS              1500U
 #define ARM_AUTO_WAIT_ROTATE_BACK_MS                 800U
 #define ARM_AUTO_WAIT_ROTATE_BACK_AND_RELEASE_HEIGHT 2500U
@@ -168,6 +168,7 @@ enum AutoCatchState
     AUTO_CATCH_ROTATE,
     AUTO_CATCH_HEIGHT_AND_PUMP,
     AUTO_CATCH_PUSH_OUT,
+    AUTO_CATCH_BACK,
     AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE,
     AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT,
     AUTO_CATCH_RELEASE,
@@ -177,6 +178,7 @@ enum AutoCatchState
 static volatile AutoCatchState    g_auto_catch_state          = AUTO_CATCH_IDLE;
 static volatile uint32_t          g_auto_catch_state_start_ms = 0;
 static volatile ArmAutoCatchLevel g_auto_catch_target_height  = ARM_AUTO_CATCH_HIGH;
+static volatile bool              g_auto_catch_continue       = false;
 
 // ================================= 机械臂控制相关变量与函数声明
 // ===================================
@@ -318,6 +320,10 @@ static void AutoCatchEnterState(AutoCatchState state, uint32_t now_ms)
 {
     g_auto_catch_state          = state;
     g_auto_catch_state_start_ms = now_ms;
+    if (state == AUTO_CATCH_BACK)
+    {
+        g_auto_catch_continue = false;
+    }
 }
 
 // 返回自动抓取流程是否在运行。
@@ -396,15 +402,24 @@ bool Arm_AutoCatchStart(ArmAutoCatchLevel level)
         return false;
     }
 
-    arm_vel_out         = 0;
-    arm_vel_rotate      = 0;
-    arm_vel_height      = 0;
-    arm_vel_out_last    = 0;
-    arm_vel_rotate_last = 0;
-    arm_vel_height_last = 0;
+    arm_vel_out           = 0;
+    arm_vel_rotate        = 0;
+    arm_vel_height        = 0;
+    arm_vel_out_last      = 0;
+    arm_vel_rotate_last   = 0;
+    arm_vel_height_last   = 0;
+    g_auto_catch_continue = false;
 
     AutoCatchEnterState(AUTO_CATCH_ROTATE, HAL_GetTick());
     return true;
+}
+
+void Arm_AutoCatchContinue()
+{
+    if (g_auto_catch_state == AUTO_CATCH_BACK)
+    {
+        g_auto_catch_continue = true;
+    }
 }
 
 void Arm_Rotate_Out(bool enable)
@@ -526,10 +541,17 @@ static void Arm_softTIM(void* argument)
             pos_catch_motor->setRef(ARM_CATCH_PUSH_ANGLE);
             if (AutoStepTimeout(ARM_AUTO_WAIT_PUSH_MS, now_ms))
             {
-                vel_catch_motor->disable();
-                pos_catch_motor->enable();
+                AutoCatchEnterState(AUTO_CATCH_BACK, now_ms);
+            }
+            break;
 
-                pos_catch_motor->setRef(ARM_AUTO_RETRACT_PUSH_ANGLE);
+        case AUTO_CATCH_BACK: // 推出后把机械臂收回，准备去放物位置
+            vel_catch_motor->disable();
+            pos_catch_motor->enable();
+            pos_catch_motor->setRef(ARM_AUTO_RETRACT_PUSH_ANGLE);
+            if (AutoStepTimeout(ARM_AUTO_WAIT_PUSH_MS, now_ms) && g_auto_catch_continue)
+            {
+                g_auto_catch_continue = false;
                 switch (g_auto_catch_target_height)
                 {
                 case ARM_AUTO_CATCH_LOW:
@@ -622,11 +644,7 @@ static void Arm_softTIM(void* argument)
 static void Arm_Contrl_Task(void* argument)
 {
     (void)argument;
-    if (!Is_raiseandlower_motor_init)
-    {
-        Arm_raiseandlower_reset(30.0f);
-        Is_raiseandlower_motor_init = true;
-    }
+    Arm_raiseandlower_reset(30.0f);
     if (raiseandlower_motor != nullptr)
     {
         raiseandlower_motor->resetAngle();
@@ -634,24 +652,6 @@ static void Arm_Contrl_Task(void* argument)
     vel_raiseandlower_motor->getPID().reset();
     for (;;)
     {
-        if (arm_vel_out_last != 0)
-        {
-            pos_catch_motor->disable();
-            vel_catch_motor->enable();
-            vel_catch_motor->setRef(arm_vel_out);
-        }
-        if (arm_vel_height_last != 0)
-        {
-            pos_raiseandlower_motor->disable();
-            vel_raiseandlower_motor->enable();
-            vel_raiseandlower_motor->setRef(arm_vel_height);
-        }
-        if (arm_vel_rotate_last != 0)
-        {
-            pos_rotate_motor->disable();
-            vel_rotate_motor->enable();
-            vel_rotate_motor->setRef(arm_vel_rotate);
-        }
         osDelay(10);
     }
 }
