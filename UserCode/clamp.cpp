@@ -227,9 +227,12 @@ static void ClampControl(void* argument)
             if (((button_state & DIP4_MASK) == DIP4_CASE0) && (clamp_state != clamp_status::Out))
             {
                 clamp_state = clamp_status::Out;
-                catch_angle = 0.0f;
-                osDelay(1000);
                 HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_SET);
+                osDelay(500);
+                target_roll = 0.0f;
+                osDelay(500);
+                catch_angle = 0.0f;
+                osDelay(500);
             }
             else if (((button_state & DIP4_MASK) == DIP4_CASE1) &&
                      (clamp_state != clamp_status::In))
@@ -237,16 +240,17 @@ static void ClampControl(void* argument)
                 clamp_state = clamp_status::In;
                 catch_angle = 200;
                 osDelay(500);
-                target_roll = 180.0f;
+                target_roll = -270.0f;
                 osDelay(1000);
+                target_yaw = 90;
                 HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_RESET);
             }
             else if (((button_state & DIP4_MASK) == DIP4_CASE2) &&
                      (clamp_state != clamp_status::Dock))
             {
-                target_yaw = 90.0f;
+                target_yaw = 0.0f;
                 osDelay(1000);
-                target_roll = 180.0f;
+                target_roll = -270.0f;
                 clamp_state = clamp_status::Dock;
             }
         }

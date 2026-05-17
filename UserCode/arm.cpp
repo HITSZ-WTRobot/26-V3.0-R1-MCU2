@@ -664,7 +664,7 @@ inline constexpr Motor_VelCtrl_t::Config arm_catch_vel_cfg{
     .pid = { .Kp = 25.0f, .Ki = 0.15f, .Kd = 20.0f, .abs_output_max = 5000.0f },
 };
 inline constexpr Motor_VelCtrl_t::Config arm_rotate_vel_cfg{
-    .pid = { .Kp = 100.0f, .Ki = 0.8f, .Kd = 1.0f, .abs_output_max = 8000.0f },
+    .pid = { .Kp = 450.0f, .Ki = 1.0f, .Kd = 0.0f, .abs_output_max = 8000.0f },
 };
 inline constexpr Motor_VelCtrl_t::Config arm_raiseandlower_vel_cfg{
     .pid = { .Kp = 100.0f, .Ki = 0.8f, .Kd = 1.0f, .abs_output_max = 14000.0f },
@@ -675,9 +675,9 @@ inline constexpr Motor_PosCtrl_t::Config arm_catch_pos_cfg{
     .pos_vel_freq_ratio = 10,
 };
 inline constexpr Motor_PosCtrl_t::Config arm_rotate_pos_cfg{
-    .position_pid       = { .Kp = 1.6f, .Ki = 0.00f, .Kd = 0.6f, .abs_output_max = 100.0f },
-    .velocity_pid       = { .Kp = 500.0f, .Ki = 5.0f, .Kd = 0.5f, .abs_output_max = 12000.0f },
-    .pos_vel_freq_ratio = 1,
+    .position_pid       = { .Kp = 3.0f, .Ki = 0.00f, .Kd = 2.0f, .abs_output_max = 70.0f },
+    .velocity_pid       = { .Kp = 450.0f, .Ki = 1.0f, .Kd = 0.0f, .abs_output_max = 12000.0f },
+    .pos_vel_freq_ratio = 10,
 };
 inline constexpr Motor_PosCtrl_t::Config arm_raiseandlower_pos_cfg{
     .position_pid       = { .Kp = 1.6f, .Ki = 0.0f, .Kd = 0.6f, .abs_output_max = 300.0f },

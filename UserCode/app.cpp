@@ -42,10 +42,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 extern "C" void Init(void* argument)
 {
     (void)argument;
-
     flags_create();
     Controller::app_controller_receive_init();
     Device::app_device_init();
+    osDelay(3000);
     Clamp::app_clamp_init();
     Arm::app_arm_init();
     Push::app_push_init();

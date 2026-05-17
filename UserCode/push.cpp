@@ -19,7 +19,7 @@ static float       target_pos = 0.0f;
 
 const osThreadAttr_t push_attributes = {
     .name       = "push",
-    .stack_size = 128 * 8,
+    .stack_size = 128 * 4,
     .priority   = (osPriority_t)osPriorityNormal1,
 };
 
