@@ -132,7 +132,7 @@ static void Pump_Init(Pump_t* hpump, const Pump_Config_t* config)
 #define ARM_AUTO_WAIT_PUSH_MS                        500U
 #define ARM_AUTO_WAIT_RELEASE_HEIGHT_MS              1500U
 #define ARM_AUTO_WAIT_ROTATE_BACK_MS                 800U
-#define ARM_AUTO_WAIT_ROTATE_BACK_AND_RELEASE_HEIGHT 2500U
+#define ARM_AUTO_WAIT_ROTATE_BACK_AND_RELEASE_HEIGHT 2000U
 #define ARM_AUTO_WAIT_RELEASE_MS                     500U
 #define ARM_AUTO_WAIT_RESET_POS_MS                   2000U
 #define ARM_AUTO_RETRACT_PUSH_ANGLE                  0.0f
@@ -556,11 +556,11 @@ static void Arm_softTIM(void* argument)
                 case ARM_AUTO_CATCH_LOW:
                     pos_raiseandlower_motor->enable();
                     Arm_raiseandlower_set_pos_ref(ARM_RESET_ANGLE);
-                    AutoCatchEnterState(AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE, now_ms);
+                    AutoCatchEnterState(AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT, now_ms);
                 case ARM_AUTO_CATCH_MID:
                     pos_raiseandlower_motor->enable();
                     Arm_raiseandlower_set_pos_ref(ARM_RESET_ANGLE);
-                    AutoCatchEnterState(AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE, now_ms);
+                    AutoCatchEnterState(AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT, now_ms);
                     break;
                 case ARM_AUTO_CATCH_HIGH:
                     AutoCatchEnterState(AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT, now_ms);
@@ -578,21 +578,6 @@ static void Arm_softTIM(void* argument)
                 vel_raiseandlower_motor->disable();
                 pos_raiseandlower_motor->enable();
                 Arm_raiseandlower_set_pos_ref(ARM_RELEASE_HEIGHT);
-                if (AutoStepTimeout(ARM_AUTO_WAIT_ROTATE_BACK_AND_RELEASE_HEIGHT, now_ms))
-                {
-                    AutoCatchEnterState(AUTO_CATCH_RELEASE, now_ms);
-                }
-            }
-            break;
-
-        case AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE: // 先去释放高度再旋转的逻辑
-            pos_raiseandlower_motor->enable();
-            Arm_raiseandlower_set_pos_ref(ARM_RELEASE_HEIGHT);
-            if (AutoStepTimeout(ARM_AUTO_WAIT_RELEASE_HEIGHT_MS, now_ms))
-            {
-                vel_rotate_motor->disable();
-                pos_rotate_motor->enable();
-                pos_rotate_motor->setRef(ARM_ROTATE_RELEASE_ANGLE);
                 if (AutoStepTimeout(ARM_AUTO_WAIT_ROTATE_BACK_AND_RELEASE_HEIGHT, now_ms))
                 {
                     AutoCatchEnterState(AUTO_CATCH_RELEASE, now_ms);
