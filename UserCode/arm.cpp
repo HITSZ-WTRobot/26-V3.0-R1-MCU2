@@ -135,7 +135,7 @@ static void Pump_Init(Pump_t* hpump, const Pump_Config_t* config)
 #define ARM_AUTO_WAIT_ROTATE_BACK_AND_RELEASE_HEIGHT 2000U
 #define ARM_AUTO_WAIT_RELEASE_MS                     500U
 #define ARM_AUTO_WAIT_RESET_POS_MS                   2000U
-#define ARM_AUTO_RETRACT_PUSH_ANGLE                  0.0f
+#define ARM_AUTO_RETRACT_PUSH_ANGLE                  20.0f
 #define ARM_AUTO_RETREAT_MIN_TIME_MS                 300U
 #define ARM_AUTO_RETREAT_MAX_TIME_MS                 2500U
 #define ARM_RAISEANDLOWER_POS_DEADZONE_DEG           10.0f

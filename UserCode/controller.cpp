@@ -179,23 +179,23 @@ static void HandleClampControl(uint32_t btn_state)
 {
     if (Clamp::reset_status == Clamp::ResetProcess::Success)
     {
-        if (btn_state & KEY5)
-        {
-            Clamp::clamp_vel_out = -clamp_config::OutManualSpeed;
-        }
-        else if (btn_state & KEY6)
+        if (btn_state & KEY1)
         {
             Clamp::clamp_vel_out = clamp_config::OutManualSpeed;
+        }
+        else if (btn_state & KEY9)
+        {
+            Clamp::clamp_vel_out = -clamp_config::OutManualSpeed;
         }
         else
         {
             Clamp::clamp_vel_out = 0.0f;
         }
-        if (btn_state & KEY1)
+        if (btn_state & KEY5)
         {
             Clamp::clamp_vel_yaw = clamp_config::YawManualSpeed;
         }
-        else if (btn_state & KEY9)
+        else if (btn_state & KEY6)
         {
             Clamp::clamp_vel_yaw = -clamp_config::YawManualSpeed;
         }
