@@ -130,6 +130,7 @@ static void Pump_Init(Pump_t* hpump, const Pump_Config_t* config)
 #define ARM_AUTO_WAIT_ROTATE_MS                      500U
 #define ARM_AUTO_WAIT_PUMP_ON_MS                     50U
 #define ARM_AUTO_WAIT_PUSH_MS                        500U
+#define ARM_AUTO_WAIT_BACK_MS                        500U
 #define ARM_AUTO_WAIT_RELEASE_HEIGHT_MS              1500U
 #define ARM_AUTO_WAIT_ROTATE_BACK_MS                 800U
 #define ARM_AUTO_WAIT_ROTATE_BACK_AND_RELEASE_HEIGHT 2000U
@@ -169,6 +170,7 @@ enum AutoCatchState
     AUTO_CATCH_HEIGHT_AND_PUMP,
     AUTO_CATCH_PUSH_OUT,
     AUTO_CATCH_BACK,
+    AUTO_HEIGHT_BACK,
     AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE,
     AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT,
     AUTO_CATCH_RELEASE,
@@ -548,26 +550,22 @@ static void Arm_softTIM(void* argument)
             vel_catch_motor->disable();
             pos_catch_motor->enable();
             pos_catch_motor->setRef(ARM_AUTO_RETRACT_PUSH_ANGLE);
-            if (AutoStepTimeout(ARM_AUTO_WAIT_PUSH_MS, now_ms) && g_auto_catch_continue)
+            if (AutoStepTimeout(ARM_AUTO_WAIT_BACK_MS, now_ms))
             {
-                g_auto_catch_continue = false;
-                switch (g_auto_catch_target_height)
-                {
-                case ARM_AUTO_CATCH_LOW:
-                    pos_raiseandlower_motor->enable();
-                    Arm_raiseandlower_set_pos_ref(ARM_RESET_ANGLE);
-                    AutoCatchEnterState(AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT, now_ms);
-                case ARM_AUTO_CATCH_MID:
-                    pos_raiseandlower_motor->enable();
-                    Arm_raiseandlower_set_pos_ref(ARM_RESET_ANGLE);
-                    AutoCatchEnterState(AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT, now_ms);
-                    break;
-                case ARM_AUTO_CATCH_HIGH:
-                    AutoCatchEnterState(AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT, now_ms);
-                    break;
-                }
+                AutoCatchEnterState(AUTO_HEIGHT_BACK, now_ms);
             }
             break;
+
+        case AUTO_HEIGHT_BACK: //先回初始高度，方便开车
+                vel_raiseandlower_motor->disable();
+                pos_raiseandlower_motor->enable();
+                Arm_raiseandlower_set_pos_ref(ARM_CATCH_HEIGHT_HIGH);
+                if (AutoStepTimeout(ARM_AUTO_WAIT_BACK_MS, now_ms) && g_auto_catch_continue)
+                {
+                    g_auto_catch_continue = false;
+                    AutoCatchEnterState(AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT, now_ms);
+                }
+                break;
 
         case AUTO_CATCH_ROTATE_AND_GO_RELEASE_HEIGHT: // 先旋转再去释放高度的逻辑
             vel_rotate_motor->disable();
