@@ -16,6 +16,16 @@ inline constexpr size_t modbus_frame_size = 8U;
 inline constexpr uint8_t modbus_address  = 0x01U;
 inline constexpr uint8_t modbus_write_coil = 0x05U;
 inline constexpr uint16_t coil_base_address = 0x0000U;
+inline constexpr uint32_t relay_queue_depth = 4U;
+
+osMessageQueueId_t relay_queue = nullptr;
+osThreadId_t relay_task_id = nullptr;
+
+const osThreadAttr_t relay_task_attributes = {
+    .name       = "led_relay",
+    .stack_size = 128 * 4,
+    .priority   = (osPriority_t)osPriorityNormal,
+};
 
 void relay_power_gpio_init()
 {
@@ -81,28 +91,9 @@ void send_write_coil(uint16_t coil_address, bool on)
     frame[7] = static_cast<uint8_t>((crc >> 8U) & 0xFFU);
 
     HAL_UART_Transmit(&huart6, frame, static_cast<uint16_t>(modbus_frame_size), 50U);
- }
-} // namespace
-
-void app_led_init()
-{
-    relay_power_gpio_init();
-
-    for (uint8_t index = 0U; index < 4U; index++)
-    {
-        const uint16_t coil_address = static_cast<uint16_t>(coil_base_address + index);
-        send_write_coil(coil_address, true);
-        osDelay(100U); // 每帧间隔 100ms，避免总线过载
-    }
 }
 
-// 选择指定继电器（0x01..0x04）打开，并关闭其余三路。
-// 例如 relay_value = 0x01 时，依次发送四帧：
-// 01 05 00 00 FF 00 8C 3A
-// 01 05 00 01 00 00 9C 0A
-// 01 05 00 02 00 00 6C 0A
-// 01 05 00 03 00 00 3D CA
-void relay_select(uint8_t relay_value)
+void relay_apply(uint8_t relay_value)
 {
     if (relay_value < 0x01U || relay_value > 0x04U)
     {
@@ -116,7 +107,69 @@ void relay_select(uint8_t relay_value)
         const uint16_t coil_address = static_cast<uint16_t>(coil_base_address + index);
         const bool turn_on = (index == target_index);
         send_write_coil(coil_address, turn_on);
-        osDelay(10U); // 每帧间隔 10 ms，避免总线过载
+        osDelay(100U); // 每帧间隔 100 ms，避免总线过载
+    }
+}
+
+void relay_task(void* argument)
+{
+    (void)argument;
+
+    uint8_t relay_value = 0U;
+    while (1)
+    {
+        if (osMessageQueueGet(relay_queue, &relay_value, nullptr, osWaitForever) == osOK)
+        {
+            while (osMessageQueueGet(relay_queue, &relay_value, nullptr, 0U) == osOK)
+            {
+            }
+
+            relay_apply(relay_value);
+        }
+    }
+}
+} // namespace
+
+void app_led_init()
+{
+    relay_power_gpio_init();
+
+    if (relay_queue == nullptr)
+    {
+        relay_queue = osMessageQueueNew(relay_queue_depth, sizeof(uint8_t), nullptr);
+    }
+
+    if (relay_queue != nullptr && relay_task_id == nullptr)
+    {
+        relay_task_id = osThreadNew(relay_task, nullptr, &relay_task_attributes);
+    }
+
+    for (uint8_t index = 0U; index < 4U; index++)
+    {
+        const uint16_t coil_address = static_cast<uint16_t>(coil_base_address + index);
+        send_write_coil(coil_address, true);
+        osDelay(30U); // 每帧间隔 30ms，避免总线过载
+    }
+}
+
+// 选择指定继电器（0x01..0x04）打开，并关闭其余三路。
+// 例如 relay_value = 0x01 时，依次发送四帧：
+// 01 05 00 00 FF 00 8C 3A
+// 01 05 00 01 00 00 9C 0A
+// 01 05 00 02 00 00 6C 0A
+// 01 05 00 03 00 00 3D CA
+void relay_select(uint8_t relay_value)
+{
+    if (relay_queue == nullptr)
+    {
+        return;
+    }
+
+    if (osMessageQueuePut(relay_queue, &relay_value, 0U, 0U) != osOK)
+    {
+        uint8_t dropped = 0U;
+        (void)osMessageQueueGet(relay_queue, &dropped, nullptr, 0U);
+        (void)osMessageQueuePut(relay_queue, &relay_value, 0U, 0U);
     }
 }
 
