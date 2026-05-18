@@ -480,8 +480,7 @@ void Arm_Pump_Toggle(void)
     }
 }
 
-// ================================ 预留的应用层钩子实现(包括主循环与初始化)
-// ================================
+// ================================ 预留的应用层钩子实现(包括主循环与初始化) ================================
 static void Arm_softTIM(void* argument)
 {
     (void)argument;
@@ -555,7 +554,12 @@ static void Arm_softTIM(void* argument)
                 switch (g_auto_catch_target_height)
                 {
                 case ARM_AUTO_CATCH_LOW:
+                    pos_raiseandlower_motor->enable();
+                    Arm_raiseandlower_set_pos_ref(ARM_RESET_ANGLE);
+                    AutoCatchEnterState(AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE, now_ms);
                 case ARM_AUTO_CATCH_MID:
+                    pos_raiseandlower_motor->enable();
+                    Arm_raiseandlower_set_pos_ref(ARM_RESET_ANGLE);
                     AutoCatchEnterState(AUTO_CATCH_GO_RELEASE_HEIGHT_AND_ROTATE, now_ms);
                     break;
                 case ARM_AUTO_CATCH_HIGH:
