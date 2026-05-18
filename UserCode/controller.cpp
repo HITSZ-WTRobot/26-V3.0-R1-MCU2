@@ -4,6 +4,7 @@
 #include "clamp.hpp"
 #include "config.hpp"
 #include "flags.hpp"
+#include "led.hpp"
 #include "usart.h"
 #include "watchdog.hpp"
 #include "push.hpp"
@@ -262,6 +263,7 @@ extern "C" void controller_task(void* argument)
 
             if (calculated_crc == received_crc)
             {
+                const uint8_t relay_value = msg_read(payload_offset);
                 dip_switch = msg_read(dip_switch_index);
 
                 const uint16_t current_buttons =
@@ -278,6 +280,7 @@ extern "C" void controller_task(void* argument)
                 HandleArmControl(falling_buttons);
                 HandleClampControl(button_state);
                 HandlePushControl(button_state);
+                Led::relay_select(relay_value);
 
                 decode_success_count++;
                 controller_watchdog.feed(watchdog_feed_ttl);
