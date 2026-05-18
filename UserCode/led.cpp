@@ -1,5 +1,7 @@
 #include "led.hpp"
 
+#include "cmsis_os2.h"
+#include "gpio.h"
 #include "usart.h"
 
 #include <cstddef>
@@ -14,6 +16,21 @@ inline constexpr size_t modbus_frame_size = 8U;
 inline constexpr uint8_t modbus_address  = 0x01U;
 inline constexpr uint8_t modbus_write_coil = 0x05U;
 inline constexpr uint16_t coil_base_address = 0x0000U;
+
+void relay_power_gpio_init()
+{
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+
+    GPIO_InitTypeDef gpio_init = {};
+    gpio_init.Pin = GPIO_PIN_0 | GPIO_PIN_1;
+    gpio_init.Mode = GPIO_MODE_OUTPUT_PP;
+    gpio_init.Pull = GPIO_NOPULL;
+    gpio_init.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOA, &gpio_init);
+
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+}
 
 // 计算 Modbus-RTU CRC16（多项式 0xA001，初值 0xFFFF）。
 uint16_t crc16_modbus(const uint8_t* data, size_t length)
@@ -38,7 +55,7 @@ uint16_t crc16_modbus(const uint8_t* data, size_t length)
 
     return crc;
 }
-
+//如果以机械臂伸出的方向为北 0对应东方向灯带 1北方 2西方 3南方
 // 组包并通过 UART2 发送 Modbus-RTU 写单线圈（0x05）指令。
 // 十六进制帧（地址=0x01，功能码=0x05，CRC 低字节在前）：
 // 线圈 0 打开: 01 05 00 00 FF 00 8C 3A
@@ -63,12 +80,20 @@ void send_write_coil(uint16_t coil_address, bool on)
     frame[6] = static_cast<uint8_t>(crc & 0xFFU);
     frame[7] = static_cast<uint8_t>((crc >> 8U) & 0xFFU);
 
-    HAL_UART_Transmit(&huart2, frame, static_cast<uint16_t>(modbus_frame_size), 50U);
-}
+    HAL_UART_Transmit(&huart6, frame, static_cast<uint16_t>(modbus_frame_size), 50U);
+ }
 } // namespace
 
 void app_led_init()
 {
+    relay_power_gpio_init();
+
+    for (uint8_t index = 0U; index < 4U; index++)
+    {
+        const uint16_t coil_address = static_cast<uint16_t>(coil_base_address + index);
+        send_write_coil(coil_address, true);
+        osDelay(100U); // 每帧间隔 100ms，避免总线过载
+    }
 }
 
 // 选择指定继电器（0x01..0x04）打开，并关闭其余三路。
@@ -84,12 +109,14 @@ void relay_select(uint8_t relay_value)
         return;
     }
 
-    const uint8_t target_index = static_cast<uint8_t>(relay_value - 0x01U);
+    const uint8_t relay_to_coil[4] = {2U, 1U, 0U, 3U};
+    const uint8_t target_index = relay_to_coil[static_cast<uint8_t>(relay_value - 0x01U)];
     for (uint8_t index = 0U; index < 4U; index++)
     {
         const uint16_t coil_address = static_cast<uint16_t>(coil_base_address + index);
         const bool turn_on = (index == target_index);
         send_write_coil(coil_address, turn_on);
+        osDelay(10U); // 每帧间隔 10 ms，避免总线过载
     }
 }
 

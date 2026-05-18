@@ -1,0 +1,28 @@
+
+OpenDocument="tasks.c", FilePath="C:/Users/13981/Desktop/R1_MCU2_LED/26-V3.0-R1-MCU2/Middlewares/Third_Party/FreeRTOS/Source/tasks.c", Line=3635
+OpenDocument="led.cpp", FilePath="C:/Users/13981/Desktop/R1_MCU2_LED/26-V3.0-R1-MCU2/UserCode/led.cpp", Line=0
+OpenDocument="stm32f4xx_it.c", FilePath="C:/Users/13981/Desktop/R1_MCU2_LED/26-V3.0-R1-MCU2/Core/Src/stm32f4xx_it.c", Line=85
+OpenDocument="main.c", FilePath="C:/Users/13981/Desktop/R1_MCU2_LED/26-V3.0-R1-MCU2/Core/Src/main.c", Line=87
+OpenToolbar="Debug", Floating=0, x=0, y=0
+OpenWindow="Registers 1", DockArea=RIGHT, x=0, y=1, w=316, h=472, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, FilteredItems=[], RefreshRate=1
+OpenWindow="Source Files", DockArea=LEFT, x=0, y=1, w=691, h=291, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=316, h=647, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Memory 1", DockArea=BOTTOM, x=0, y=0, w=923, h=301, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, EditorAddress=0x0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=2, w=691, h=476, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Functions", DockArea=LEFT, x=0, y=0, w=691, h=351, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Terminal", DockArea=BOTTOM, x=2, y=0, w=922, h=301, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Console", DockArea=BOTTOM, x=1, y=0, w=713, h=301, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+TableHeader="Functions", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Address";"Size";"#Insts";"Source"], ColWidths=[3089;131;100;116;798]
+TableHeader="Source Files", SortCol="File", SortOrder="ASCENDING", VisibleCols=["File";"Status";"Size";"#Insts";"Path"], ColWidths=[361;116;100;116;1062]
+TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
+TableHeader="Task List", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Run Count";"Priority";"Status";"Timeout";"Stack Info (Free / Size)";"ID";"Mutex Count";"Notified Value";"Notify State"], ColWidths=[110;110;110;110;110;110;110;110;110;110]
+TableHeader="Registers 1", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Description"], ColWidths=[103;183;294]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[314;254;104;100]
+TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
+TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[26;26;26;26]
+WatchedExpression="Device::motor::catch_motor", RefreshRate=5, Window=Watched Data 1
+WatchedExpression="Device::motor::rotate_motor", RefreshRate=5, Window=Watched Data 1
+WatchedExpression="Device::motor::raiseandlower_motor", RefreshRate=5, Window=Watched Data 1
+WatchedExpression="dip_switch", RefreshRate=5, Window=Watched Data 1
+WatchedExpression="button_state", RefreshRate=5, Window=Watched Data 1
+WatchedExpression="is_controller_connected", RefreshRate=5, Window=Watched Data 1
