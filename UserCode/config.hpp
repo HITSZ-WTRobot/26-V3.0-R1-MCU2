@@ -10,8 +10,10 @@ namespace Clamp
 inline constexpr float MaxVelRoll = 100.0f;
 inline constexpr float MaxVelYaw  = 10.0f;
 
-inline constexpr float OutManualSpeed  = 100.0f;
-inline constexpr float YawManualSpeed  = 20.0f;
+inline constexpr float OutManualSpeed     = 100.0f;
+inline constexpr float YawManualSpeed     = 20.0f;
+inline constexpr float YawManualSpeed_low = 1.0f;
+
 inline constexpr float RollManualSpeed = 150.0f;
 
 inline constexpr controllers::MotorPosController::Config kM2006PosConfig{

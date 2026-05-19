@@ -191,17 +191,35 @@ static void HandleClampControl(uint32_t btn_state)
         {
             Clamp::clamp_vel_out = 0.0f;
         }
-        if (btn_state & KEY5)
+        if ((button_state & DIP4_MASK) == DIP4_CASE1)
         {
-            Clamp::clamp_vel_yaw = clamp_config::YawManualSpeed;
-        }
-        else if (btn_state & KEY6)
-        {
-            Clamp::clamp_vel_yaw = -clamp_config::YawManualSpeed;
+            if (btn_state & KEY5)
+            {
+                Clamp::clamp_vel_yaw = clamp_config::YawManualSpeed;
+            }
+            else if (btn_state & KEY6)
+            {
+                Clamp::clamp_vel_yaw = -clamp_config::YawManualSpeed;
+            }
+            else
+            {
+                Clamp::clamp_vel_yaw = 0.0f;
+            }
         }
         else
         {
-            Clamp::clamp_vel_yaw = 0.0f;
+            if (btn_state & KEY5)
+            {
+                Clamp::clamp_vel_yaw = clamp_config::YawManualSpeed_low;
+            }
+            else if (btn_state & KEY6)
+            {
+                Clamp::clamp_vel_yaw = -clamp_config::YawManualSpeed_low;
+            }
+            else
+            {
+                Clamp::clamp_vel_yaw = 0.0f;
+            }
         }
     }
     if (button_state & 0x00040000U)
@@ -264,7 +282,7 @@ extern "C" void controller_task(void* argument)
             if (calculated_crc == received_crc)
             {
                 const uint8_t relay_value = msg_read(payload_offset);
-                dip_switch = msg_read(dip_switch_index);
+                dip_switch                = msg_read(dip_switch_index);
 
                 const uint16_t current_buttons =
                         (uint16_t)((static_cast<uint16_t>(msg_read(button_high_index)) << 8) |
