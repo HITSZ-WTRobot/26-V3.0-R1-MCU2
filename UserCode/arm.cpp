@@ -418,7 +418,7 @@ bool Arm_AutoCatchStart(ArmAutoCatchLevel level)
 
 void Arm_AutoCatchContinue()
 {
-    if (g_auto_catch_state == AUTO_CATCH_BACK)
+    if (g_auto_catch_state == AUTO_HEIGHT_BACK)
     {
         g_auto_catch_continue = true;
     }
